@@ -1,0 +1,21 @@
+{
+  "name": "bricksy",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --strictPort",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "check": "tsc --noEmit",
+    "test": "node --experimental-strip-types src/polycube.test.ts && node --experimental-strip-types src/pack.test.ts && node --experimental-strip-types src/lab/nets.test.ts"
+  },
+  "dependencies": {
+    "@types/three": "^0.186.0",
+    "three": "^0.186.0"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0"
+  }
+}

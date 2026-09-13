@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>bricksy</title>
+  <link rel="icon" href="data:,">
+</head>
+<body>
+  <div id="app">
+    <header>
+      <div class="brand">bricksy <span class="sub">pack · prototype 1</span></div>
+      <div class="hud">
+        <span class="stat">score <b id="score">0</b></span>
+        <span class="stat">best <b id="best">0</b></span>
+        <span class="stat">streak <b id="streak">0</b></span>
+        <span class="stat" id="lives" aria-label="lives"></span>
+        <span id="stageName" class="pill"></span>
+        <button id="mute" class="icon" title="Sound">🔊</button>
+      </div>
+    </header>
+    <p id="instructions">Turn the piece so it drops into the hole. Queue turns, then commit — nothing moves until you do. <span id="hint"></span></p>
+    <div id="stage">
+      <canvas id="c"></canvas>
+      <div id="over" class="overlay" hidden>
+        <div class="card">
+          <h2>Run over</h2>
+          <p><b id="overScore">0</b> pieces fitted · best <b id="overBest">0</b></p>
+          <p id="overDetail" class="muted"></p>
+          <button id="again" class="primary">Play again ↵</button>
+        </div>
+      </div>
+    </div>
+    <div id="panel">
+      <div id="queue"></div>
+      <div id="moves"></div>
+      <div id="actions">
+        <button id="undo" title="Backspace">⌫ Undo</button>
+        <button id="clear">Clear</button>
+        <button id="commit" class="primary" title="Enter">Drop it ↵</button>
+      </div>
+      <div id="message"></div>
+      <div id="post" hidden>
+        <button id="retry" title="R">Lift it out, try again</button>
+        <button id="replay">Replay my turns slowly</button>
+        <button id="skip">Skip this piece</button>
+        <button id="next" title="Enter / N">Next piece →</button>
+      </div>
+    </div>
+    <footer>
+      <span id="puzzleId" class="mono"></span>
+      <span class="keys">keys: <kbd>x</kbd><kbd>y</kbd><kbd>z</kbd> +90°, <kbd>⇧</kbd>+key −90°, <kbd>⌫</kbd> undo, <kbd>↵</kbd> drop</span>
+      <a href="/lab.html">lab ↗</a>
+      <a href="/match.html">match mode (prototype 0)</a>
+      <button id="export">Export log</button>
+      <button id="resetProgress">Reset</button>
+    </footer>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

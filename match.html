@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>bricksy · match</title>
+  <link rel="icon" href="data:,">
+</head>
+<body>
+  <div id="app">
+    <header>
+      <div class="brand">bricksy <span class="sub">mental rotation · prototype 0</span></div>
+      <div class="hud">
+        <label>Level <select id="level"></select></label>
+        <span id="levelName" class="pill"></span>
+        <span class="stat">streak <b id="streak">0</b></span>
+        <span class="stat">first-try <b id="acc">–</b></span>
+      </div>
+    </header>
+    <p id="instructions">Turn the <b>left</b> shape so it matches the <b>right</b> one. Queue turns, then commit — nothing moves until you do. <span id="hint"></span></p>
+    <div id="stage" class="split">
+      <canvas id="c"></canvas>
+      <div class="viewlabel left">YOU</div>
+      <div class="viewlabel right">TARGET</div>
+    </div>
+    <div id="panel">
+      <div id="queue"></div>
+      <div id="moves"></div>
+      <div id="actions">
+        <button id="undo" title="Backspace">⌫ Undo</button>
+        <button id="clear">Clear</button>
+        <button id="commit" class="primary" title="Enter">Commit ↵</button>
+      </div>
+      <div id="message"></div>
+      <div id="post" hidden>
+        <button id="retry" title="R">Try again</button>
+        <button id="replay">Replay my turns slowly</button>
+        <button id="reveal">Show a solution</button>
+        <button id="next" title="Enter / N">Next puzzle →</button>
+      </div>
+    </div>
+    <footer>
+      <span id="puzzleId" class="mono"></span>
+      <span class="keys">keys: <kbd>x</kbd><kbd>y</kbd><kbd>z</kbd> +90°, <kbd>⇧</kbd>+key −90°, <kbd>⌫</kbd> undo, <kbd>↵</kbd> commit</span>
+      <a href="/lab.html">lab ↗</a>
+      <button id="export">Export log</button>
+      <button id="resetProgress">Reset progress</button>
+    </footer>
+  </div>
+  <script type="module" src="/src/match.ts"></script>
+</body>
+</html>
