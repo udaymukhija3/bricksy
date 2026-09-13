@@ -166,6 +166,8 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   let C: ReturnType<typeof choices<string>> | null = null;
   let current!: { solid: Solid; cut: Cut; answer: Section; options: { id: string; s: Section }[]; correctId: string };
   const solidMat = () => new THREE.MeshStandardMaterial({ color: 0x6b8fd6, roughness: 0.55, metalness: 0.05 });
+  const frame = () => stage.place(35, 22, stage.fit(2.9), [0, -0.1, 0]);
+  stage.onResize = frame;
 
   function newCase() {
     const rng = mulberry32(Date.now());
@@ -200,7 +202,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     blade.position.copy(cut.n).multiplyScalar(cut.d);
     blade.add(new THREE.LineSegments(new THREE.EdgesGeometry(blade.geometry), new THREE.LineBasicMaterial({ color: 0xf5a524 })));
     world.add(blade);
-    stage.place(35, 22, 8.5, [0, -0.1, 0]);
+    frame();
 
     const scale = 95 / Math.max(...options.map((o) => Math.max(...o.s.loops.flat().map((p) => Math.max(Math.abs(p[0]), Math.abs(p[1]))))) ) / 2;
     choiceBox.replaceChildren();

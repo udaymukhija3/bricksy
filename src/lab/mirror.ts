@@ -36,7 +36,25 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   const world = new THREE.Group();
   stage.scene.add(world);
   const SEP = 3.6;
-  stageEl.append(h('div.stage-label', { style: { left: '14px' } }, 'A'), h('div.stage-label', { style: { left: 'calc(50% + 14px)' } }, 'B'));
+  const labelA = h('div.stage-label', { style: { left: '14px' } }, 'A');
+  const labelB = h('div.stage-label', { style: { left: 'calc(50% + 14px)' } }, 'B');
+  stageEl.append(labelA, labelB);
+
+  /** Side by side when wide, A above B when narrow. Safe to call mid-reveal only before A starts sliding. */
+  function layout() {
+    const stacked = stage.aspect < 1.15;
+    if (stacked) {
+      A.group.position.set(0, 2.1, 0);
+      B.group.position.set(0, -1.5, 0);
+      Object.assign(labelB.style, { left: '14px', top: 'calc(50% + 4px)' });
+      stage.place(28, 18, stage.fit(4.6), [0, 0.3, 0]);
+    } else {
+      A.group.position.set(-SEP, 0, 0);
+      B.group.position.set(SEP, 0, 0);
+      Object.assign(labelB.style, { left: 'calc(50% + 14px)', top: '10px' });
+      stage.place(28, 20, stage.fit(5.2), [0, -0.2, 0]);
+    }
+  }
 
   const C = choices<'rot' | 'mir'>(panelEl, [{ id: 'rot', label: 'Same shape — B is a rotation of A' }, { id: 'mir', label: 'Mirror image — no rotation gets there' }]);
   const commitB = h('button.primary', { onclick: commit, title: 'Enter' }, 'Commit ↵') as HTMLButtonElement;
@@ -47,10 +65,9 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     world.clear();
     A = cubeGroup(trap.a, { center: true, marker: 0 });
     B = cubeGroup(trap.b, { center: true });
-    A.group.position.x = -SEP;
-    B.group.position.x = SEP;
     world.add(A.group, B.group);
-    stage.place(28, 20, 44, [0, -0.2, 0]);
+    layout();
+    stage.onResize = () => { if (C.enabled) layout(); };
     C.reset();
     C.enabled = true;
     commitB.disabled = false;

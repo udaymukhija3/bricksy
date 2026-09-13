@@ -3,14 +3,14 @@ import * as THREE from 'three';
 import type { Cell, Move } from './polycube';
 import type { CameraPose } from './puzzle';
 import {
-  AXIS_VEC, COLOR_BG, Ticker, addLights, cubeGeo, edgeGeo, edgeMat, easeInOut, highlightGizmo,
+  AXIS_VEC, COLOR_BG, Ticker, addLights, cubeGeo, edgeGeo, edgeMat, easeInOut, fitDistance, highlightGizmo,
   makeCubeMaterials, makeGizmo, placeCamera, renderGizmo, type Gizmo,
 } from './render-common';
 import type { Axis } from './polycube';
 
 export { AXIS_COLOR } from './render-common';
 
-const CAMERA_DISTANCE = 10.5;
+const SHAPE_RADIUS = 2.6;
 const LOOK_AT = new THREE.Vector3(0, -0.3, 0);
 export type ViewName = 'you' | 'target';
 
@@ -31,6 +31,7 @@ export class Stage {
   private ticker = new Ticker();
   private w = 1;
   private h = 1;
+  private pose: CameraPose = { azimuth: 38, elevation: 26 };
 
   constructor(private canvas: HTMLCanvasElement) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -82,8 +83,12 @@ export class Stage {
 
   /** Both views always share the same camera pose so the comparison is fair. */
   setPose(p: CameraPose) {
-    for (const v of Object.values(this.views)) placeCamera(v.camera, v.sun, p.azimuth, p.elevation, CAMERA_DISTANCE, LOOK_AT);
+    this.pose = p;
+    for (const v of Object.values(this.views)) placeCamera(v.camera, v.sun, p.azimuth, p.elevation, fitDistance(v.camera, SHAPE_RADIUS), LOOK_AT);
   }
+
+  /** Stack the two views whenever side-by-side halves would be narrower than they are tall. */
+  private get portrait() { return this.w < 1.4 * this.h; }
 
   /** True when the camera can see the centre of every cube (nothing fully hidden). */
   isFullyVisible(name: ViewName) {
@@ -133,26 +138,33 @@ export class Stage {
     this.w = w;
     this.h = h;
     this.renderer.setSize(w, h, false);
+    const portrait = this.portrait;
+    this.canvas.parentElement!.classList.toggle('portrait', portrait);
     for (const v of Object.values(this.views)) {
-      v.camera.aspect = w / 2 / h;
+      v.camera.aspect = portrait ? w / (h / 2) : w / 2 / h;
       v.camera.updateProjectionMatrix();
     }
+    this.setPose(this.pose);
   }
 
   private frame() {
     this.ticker.update(performance.now());
     const r = this.renderer;
-    const half = Math.floor(this.w / 2);
     r.setScissorTest(true);
-    r.setViewport(0, 0, half, this.h);
-    r.setScissor(0, 0, half, this.h);
-    r.clear();
-    r.render(this.views.you.scene, this.views.you.camera);
-    r.setViewport(half, 0, this.w - half, this.h);
-    r.setScissor(half, 0, this.w - half, this.h);
-    r.clear();
-    r.render(this.views.target.scene, this.views.target.camera);
-    renderGizmo(r, this.gizmo, this.views.you.camera, LOOK_AT, 6, 6, 168);
+    // WebGL viewports measure from the bottom, so in portrait "you" is the upper half.
+    const rects = this.portrait
+      ? { you: [0, Math.ceil(this.h / 2), this.w, Math.floor(this.h / 2)], target: [0, 0, this.w, Math.ceil(this.h / 2)] }
+      : { you: [0, 0, Math.floor(this.w / 2), this.h], target: [Math.floor(this.w / 2), 0, this.w - Math.floor(this.w / 2), this.h] };
+    for (const name of ['you', 'target'] as ViewName[]) {
+      const [x, y, w, h] = rects[name];
+      r.setViewport(x, y, w, h);
+      r.setScissor(x, y, w, h);
+      r.clear();
+      r.render(this.views[name].scene, this.views[name].camera);
+    }
+    const [yx, yy, yw] = rects.you;
+    const size = Math.min(150, Math.round(yw * 0.3));
+    renderGizmo(r, this.gizmo, this.views.you.camera, LOOK_AT, yx + yw - size - 6, yy + 6, size);
     r.setScissorTest(false);
   }
 }

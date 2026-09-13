@@ -1,4 +1,5 @@
 import './style.css';
+import './pwa';
 import { Stage, AXIS_COLOR } from './scene';
 import { LEVELS, makePuzzle, type Puzzle } from './puzzle';
 import { MOVES, moveLabel, applyMoves, shapeKey, type Move, type Axis } from './polycube';
@@ -86,8 +87,8 @@ for (const m of MOVES) {
   b.style.setProperty('--c', cssColor(AXIS_COLOR[m.axis]));
   b.innerHTML = `<span class="ax">${m.axis.toUpperCase()}</span><span class="deg">${m.dir > 0 ? '+' : '−'}90°</span>`;
   b.title = `Turn ${m.dir > 0 ? '+' : '−'}90° about ${m.axis.toUpperCase()}  (key: ${m.dir > 0 ? m.axis : '⇧' + m.axis})`;
-  b.addEventListener('mouseenter', () => stage.highlightAxis(m.axis, m.dir));
-  b.addEventListener('mouseleave', () => stage.highlightAxis(null));
+  b.addEventListener('pointerenter', () => stage.highlightAxis(m.axis, m.dir));
+  b.addEventListener('pointerleave', () => stage.highlightAxis(null));
   b.addEventListener('click', () => enqueue(m));
   el.moves.append(b);
   moveButtons.set(m, b);

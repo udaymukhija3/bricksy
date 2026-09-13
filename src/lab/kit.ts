@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { MOVES, moveLabel, type Axis, type Cell, type Move } from '../polycube';
 import {
-  AXIS_COLOR, AXIS_VEC, COLOR_BG, Ticker, addLights, cubeGeo, edgeGeo, edgeMat, easeInOut, highlightGizmo,
+  AXIS_COLOR, AXIS_VEC, COLOR_BG, Ticker, addLights, cubeGeo, edgeGeo, edgeMat, easeInOut, fitDistance, highlightGizmo,
   makeCubeMaterials, makeGizmo, placeCamera, renderGizmo, type Gizmo,
 } from '../render-common';
 
@@ -55,6 +55,8 @@ export class SketchStage {
   gizmo: Gizmo | null;
   lookAt = new THREE.Vector3();
   onFrame: ((now: number) => void) | null = null;
+  /** Called after the canvas changes size (orientation change, split view) so a sketch can reframe. */
+  onResize: (() => void) | null = null;
   canvas: HTMLCanvasElement;
   private w = 1;
   private h = 1;
@@ -94,6 +96,11 @@ export class SketchStage {
 
   tween(ms: number, fn: (t: number) => void) { return this.ticker.tween(ms, fn); }
 
+  /** Distance that fits a sphere of radius r in this view — use instead of fixed camera distances. */
+  fit(r: number, margin = 1.12) { return fitDistance(this.camera, r, margin); }
+
+  get aspect() { return this.camera.aspect; }
+
   highlightAxis(axis: Axis | null, dir: 1 | -1 = 1) { if (this.gizmo) highlightGizmo(this.gizmo, axis, dir); }
 
   /** Pick objects under a pointer event. */
@@ -129,6 +136,7 @@ export class SketchStage {
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
+    this.onResize?.();
   }
 
   private frame() {
@@ -141,7 +149,10 @@ export class SketchStage {
     r.setScissor(0, 0, this.w, this.h);
     r.clear();
     r.render(this.scene, this.camera);
-    if (this.gizmo) renderGizmo(r, this.gizmo, this.camera, this.lookAt, this.w - 156, 6, 150);
+    if (this.gizmo) {
+      const size = Math.min(150, Math.round(this.w * 0.26));
+      renderGizmo(r, this.gizmo, this.camera, this.lookAt, this.w - size - 6, 6, size);
+    }
     r.setScissorTest(false);
   }
 
@@ -294,8 +305,8 @@ export function turnQueue(container: HTMLElement, opts: { commitLabel?: string; 
     const b = h('button.mv', {
       title: `Turn ${m.dir > 0 ? '+' : '−'}90° about ${m.axis.toUpperCase()}  (key: ${m.dir > 0 ? m.axis : '⇧' + m.axis})`,
       onclick: () => add(m),
-      onmouseenter: () => opts.onHover?.(m.axis, m.dir),
-      onmouseleave: () => opts.onHover?.(null, 1),
+      onpointerenter: () => opts.onHover?.(m.axis, m.dir),
+      onpointerleave: () => opts.onHover?.(null, 1),
     }, h('span.ax', {}, m.axis.toUpperCase()), h('span.deg', {}, `${m.dir > 0 ? '+' : '−'}90°`)) as HTMLButtonElement;
     b.style.setProperty('--c', cssColor(AXIS_COLOR[m.axis]));
     movesEl.append(b);
@@ -373,7 +384,7 @@ export function layerBuilder(container: HTMLElement, dims: { w: number; h: numbe
 /** A W×H grid of toggleable squares (silhouettes, cross-sections). Row 0 is the top row. */
 export function gridPicker(container: HTMLElement, w: number, hgt: number, opts: { onChange?: (on: Set<string>) => void; readonly?: boolean; label?: string } = {}) {
   const on = new Set<string>();
-  const grid = h('div.grid', { style: { gridTemplateColumns: `repeat(${w}, 1fr)` } });
+  const grid = h('div.grid' + (opts.readonly ? '.ro' : ''), { style: { gridTemplateColumns: `repeat(${w}, 1fr)` } });
   const cells = new Map<string, HTMLElement>();
   let enabled = !opts.readonly;
   for (let r = 0; r < hgt; r++) for (let c = 0; c < w; c++) {

@@ -4,7 +4,7 @@ import { applyMoves, bboxMin, type Axis, type Cell, type Move } from './polycube
 import { cellKey, type Landing, type PackPuzzle } from './pack';
 import {
   AXIS_VEC, COLOR_BG, COLOR_MARKER, Ticker, addLights, cubeGeo, edgeGeo, edgeMat, easeIn, easeInOut, easeOut,
-  highlightGizmo, makeCubeMaterials, makeGizmo, placeCamera, renderGizmo, type Gizmo,
+  fitDistance, highlightGizmo, makeCubeMaterials, makeGizmo, placeCamera, renderGizmo, type Gizmo,
 } from './render-common';
 
 export { AXIS_COLOR } from './render-common';
@@ -63,6 +63,8 @@ export class PackStage {
   private mats = makeCubeMaterials();
   private c0 = new THREE.Vector3();
   private hover = new THREE.Vector3();
+  /** Radius of the sphere (around lookAt) that must stay in view: mold plus hovering piece. */
+  private radius = 6;
   private bob = false;
   private puzzle: PackPuzzle | null = null;
   private w = 1;
@@ -145,8 +147,17 @@ export class PackStage {
     this.piece.position.copy(this.hover);
     this.bob = true;
 
-    this.lookAt.set(mold.w / 2 - 0.5, (this.hover.y + ext[1] / 2) / 2 + 0.2, mold.d / 2 - 0.5);
-    const dist = 11 + 0.9 * Math.max(mold.w, mold.d) + 0.8 * (this.hover.y + ext[1] / 2);
+    const top = this.hover.y + ext[1] / 2 + 0.5;
+    this.lookAt.set(mold.w / 2 - 0.5, top / 2 - 0.3, mold.d / 2 - 0.5);
+    this.radius = Math.hypot(mold.w / 2 + 0.5, top / 2 + 0.5, mold.d / 2 + 0.5);
+    this.reframe();
+  }
+
+  /** Place the camera so the whole scene fits at the current aspect ratio. */
+  private reframe() {
+    const p = this.puzzle;
+    if (!p) return;
+    const dist = fitDistance(this.camera, this.radius, 1.05);
     placeCamera(this.camera, this.sun, p.pose.azimuth, p.pose.elevation, dist, this.lookAt);
   }
 
@@ -246,6 +257,7 @@ export class PackStage {
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
+    this.reframe();
   }
 
   private frame() {
@@ -258,7 +270,8 @@ export class PackStage {
     r.setScissor(0, 0, this.w, this.h);
     r.clear();
     r.render(this.scene, this.camera);
-    renderGizmo(r, this.gizmo, this.camera, this.lookAt, 6, 6, 168);
+    const size = Math.min(168, Math.round(this.w * 0.26));
+    renderGizmo(r, this.gizmo, this.camera, this.lookAt, this.w - size - 6, 6, size);
     r.setScissorTest(false);
   }
 }

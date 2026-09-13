@@ -25,6 +25,9 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   let cells: Cell[] = [];
   let hiddenIdx: number[] = [];
   let group!: ReturnType<typeof cubeGroup>;
+  let view = { az: 35, el: 24 };
+  const frame = () => stage.place(view.az, view.el, stage.fit(Math.hypot(base, maxH, base) / 2 + 0.8), [(base - 1) / 2, (maxH - 1) / 2 - 0.4, (base - 1) / 2]);
+  stage.onResize = frame;
   const world = new THREE.Group();
   stage.scene.add(world);
 
@@ -62,7 +65,8 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
       world.clear();
       group = cubeGroup(cells);
       world.add(group.group);
-      stage.place(35 + (rng() - 0.5) * 20, 22 + rng() * 10, 9 + base * 2.2, [(base - 1) / 2, (maxH - 1) / 2 - 0.4, (base - 1) / 2]);
+      view = { az: 35 + (rng() - 0.5) * 20, el: 22 + rng() * 10 };
+      frame();
       const vis = visibility();
       hiddenIdx = vis.map((v, i) => (v ? -1 : i)).filter((i) => i >= 0);
       // Every column's top must be visible, so heights are inferable; and there must be something to infer.

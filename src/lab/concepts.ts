@@ -5,10 +5,12 @@ import type { Cell } from '../polycube';
 import { SketchStage, cubeGroup, voxelMesh, h, mulberry32 } from './kit';
 import type { SketchDef, MountCtx } from './types';
 
+interface View { az: number; el: number; r: number; target: [number, number, number] }
+
 interface Concept {
   def: Omit<SketchDef, 'mount' | 'status'>;
   notes: { mechanic: string; predict: string; commit: string; consequence: string; bypass: string; why: string };
-  scene: (stage: SketchStage, world: THREE.Group) => void;
+  scene: (stage: SketchStage, world: THREE.Group) => View;
 }
 
 const floor = (w: number, d: number, color = 0x2a2e3a) => {
@@ -28,7 +30,7 @@ const CONCEPTS: Concept[] = [
       bypass: 'High if single steps are allowed with free undo — it becomes trial and error. The plan-length rule and scarce undo are what force simulation.',
       why: 'Needs a level design language (solvable, interesting, non-trivial dead ends) before the mechanic can be judged. A generator that guarantees solvable-but-tight rooms is the real work.',
     },
-    scene: (stage, world) => {
+    scene: (_stage, world) => {
       world.add(floor(7, 7));
       const walls: Cell[] = [];
       for (let i = 0; i < 7; i++) walls.push([i, 0, 0], [i, 0, 6], [0, 0, i], [6, 0, i]);
@@ -43,7 +45,7 @@ const CONCEPTS: Concept[] = [
       player.position.set(1, 0, 5);
       player.castShadow = true;
       world.add(player);
-      stage.place(35, 40, 15, [3, -0.5, 3]);
+      return { az: 35, el: 40, r: 5.5, target: [3, -0.5, 3] };
     },
   },
   {
@@ -56,7 +58,7 @@ const CONCEPTS: Concept[] = [
       bypass: 'Low — but the skill is spatial memory plus perspective-taking, and it is hard to separate the two. Wall-following solves mazes without any map, so the goal must be somewhere wall-following cannot find quickly.',
       why: 'First-person controls, a maze generator with the wall-following defence, and a memory phase are three separate systems. Doable, not a sketch.',
     },
-    scene: (stage, world) => {
+    scene: (_stage, world) => {
       const rng = mulberry32(7);
       const n = 9;
       const walls: Cell[] = [];
@@ -74,7 +76,7 @@ const CONCEPTS: Concept[] = [
       const goal = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.2, 16), new THREE.MeshBasicMaterial({ color: 0x46a758 }));
       goal.position.set(n - 2, -0.4, n - 2);
       world.add(goal);
-      stage.place(30, 55, 19, [n / 2 - 0.5, -0.5, n / 2 - 0.5]);
+      return { az: 30, el: 55, r: 7, target: [n / 2 - 0.5, -0.5, n / 2 - 0.5] };
     },
   },
   {
@@ -87,7 +89,7 @@ const CONCEPTS: Concept[] = [
       bypass: 'Medium. If parts can be placed one at a time with live feedback, it degrades to trial and error. Planning the whole assembly is what keeps mental rotation and composition in the loop.',
       why: 'Placement needs a 3D positioning UI that stays predict-first. That UI is the unsolved design problem, not the geometry (which the pack model already handles).',
     },
-    scene: (stage, world) => {
+    scene: (_stage, world) => {
       world.add(floor(6, 6));
       const target = cubeGroup([[1, 0, 1], [2, 0, 1], [3, 0, 1], [1, 1, 1], [1, 0, 2], [2, 0, 2], [3, 0, 2], [3, 1, 2], [2, 1, 1]], { ghost: true, color: 0x9ec2ff });
       world.add(target.group);
@@ -100,7 +102,7 @@ const CONCEPTS: Concept[] = [
       parts[1].group.position.set(5.5, 2.6, 1); parts[1].group.rotation.x = 0.8;
       parts[2].group.position.set(2, 3.4, -1.5); parts[2].group.rotation.z = 1.1;
       for (const p of parts) world.add(p.group);
-      stage.place(30, 30, 15, [2, 0.5, 1.5]);
+      return { az: 30, el: 30, r: 5.5, target: [2, 0.5, 1.5] };
     },
   },
   {
@@ -113,7 +115,7 @@ const CONCEPTS: Concept[] = [
       bypass: 'Low for the spatial part — you cannot play without imagining rotated attack patterns — but the strategic layer can dominate, and then the game is about chess-like planning rather than spatial skill.',
       why: 'Needs an opponent or a puzzle corpus. Balance and rules design are the work; the rendering is trivial.',
     },
-    scene: (stage, world) => {
+    scene: (_stage, world) => {
       const cells: Cell[] = [];
       for (let x = 0; x < 6; x++) for (let z = 0; z < 6; z++) cells.push([x, -1, z]);
       const board = voxelMesh(cells, { color: 0x2a2e3a, outline: 0x3a4052 }).group;
@@ -129,7 +131,7 @@ const CONCEPTS: Concept[] = [
       attacks.group.scale.y = 0.15;
       attacks.group.position.y = -0.42;
       world.add(attacks.group);
-      stage.place(30, 38, 13, [2.5, -0.2, 2.5]);
+      return { az: 30, el: 38, r: 4.8, target: [2.5, -0.2, 2.5] };
     },
   },
 ];
@@ -139,7 +141,10 @@ function mountConcept(c: Concept) {
     const stage = new SketchStage(stageEl, { ground: -1.0 });
     const world = new THREE.Group();
     stage.scene.add(world);
-    c.scene(stage, world);
+    const view = c.scene(stage, world);
+    const place = () => stage.place(view.az, view.el, stage.fit(view.r), view.target);
+    place();
+    stage.onResize = place;
     stage.onFrame = (now) => { world.rotation.y = Math.sin(now / 4000) * 0.12; };
     hintEl.textContent = 'Concept — a scene of what it would look like, not a playable sketch.';
     const n = c.notes;

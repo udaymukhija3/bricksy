@@ -128,19 +128,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     tip.position.set(gears[0].x + r * Math.cos(a), gears[0].y + r * Math.sin(a), 0.5);
     tip.rotation.z = a; // tangent pointing clockwise
     world.add(arrow, tip);
-    // Frame the train.
-    const rOf = (g: Gear) => pitch(Math.max(g.teeth, g.out?.teeth ?? 0)) + MODULE;
-    const minX = Math.min(...gears.map((g) => g.x - rOf(g))), maxX = Math.max(...gears.map((g) => g.x + rOf(g)));
-    const minY = Math.min(...gears.map((g) => g.y - rOf(g))), maxY = Math.max(...gears.map((g) => g.y + rOf(g)));
-    const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
-    const tan = Math.tan(THREE.MathUtils.degToRad(stage.camera.fov / 2));
-    const D = Math.max((maxY - minY + 1.5) / (2 * tan), (maxX - minX + 1.5) / (2 * tan * stage.camera.aspect)) * 1.08;
-    stage.camera.position.set(cx, cy - D * 0.18, D);
-    stage.camera.lookAt(cx, cy, 0);
-    stage.lookAt.set(cx, cy, 0);
-    stage.sun.position.set(cx + 6, cy + 8, 14);
-    stage.sun.target.position.set(cx, cy, 0);
-    stage.sun.target.updateMatrixWorld();
+    frame();
     running = false;
     dirBox.replaceChildren(); speedBox.replaceChildren();
     CD = choices(dirBox, [{ id: 'cw', label: 'clockwise ↻' }, { id: 'ccw', label: 'counter-clockwise ↺' }]);
@@ -154,6 +142,24 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     H.set('right', right); H.set('seen', seen);
     log.push('present', { sketch: 'gears', gears: gears.map((g) => ({ teeth: g.teeth, out: g.out?.teeth })) });
   }
+
+  /** Frame the train for the current aspect ratio. */
+  function frame() {
+    if (!gears.length) return;
+    const rOf = (g: Gear) => pitch(Math.max(g.teeth, g.out?.teeth ?? 0)) + MODULE;
+    const minX = Math.min(...gears.map((g) => g.x - rOf(g))), maxX = Math.max(...gears.map((g) => g.x + rOf(g)));
+    const minY = Math.min(...gears.map((g) => g.y - rOf(g))), maxY = Math.max(...gears.map((g) => g.y + rOf(g)));
+    const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+    const tan = Math.tan(THREE.MathUtils.degToRad(stage.camera.fov / 2));
+    const D = Math.max((maxY - minY + 1.5) / (2 * tan), (maxX - minX + 1.5) / (2 * tan * stage.camera.aspect)) * 1.08;
+    stage.camera.position.set(cx, cy - D * 0.18, D);
+    stage.camera.lookAt(cx, cy, 0);
+    stage.lookAt.set(cx, cy, 0);
+    stage.sun.position.set(cx + 6, cy + 8, 14);
+    stage.sun.target.position.set(cx, cy, 0);
+    stage.sun.target.updateMatrixWorld();
+  }
+  stage.onResize = frame;
 
   stage.onFrame = (now) => {
     if (!running) return;

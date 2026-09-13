@@ -38,6 +38,9 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   let showing = false;
 
   const centre: [number, number, number] = [(dims.w - 1) / 2, (dims.h - 1) / 2 - 0.3, (dims.d - 1) / 2];
+  let azimuth = 35;
+  const frame = () => stage.place(azimuth, 26, stage.fit(Math.hypot(dims.w, dims.h, dims.d) / 2 + 0.6), centre);
+  stage.onResize = frame;
   const box = () => {
     const b = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(dims.w, dims.h, dims.d)), new THREE.LineBasicMaterial({ color: 0x3a4052 }));
     b.position.set((dims.w - 1) / 2, (dims.h - 1) / 2, (dims.d - 1) / 2);
@@ -71,11 +74,12 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     world.add(box());
     const shown = cubeGroup(original);
     world.add(shown.group);
-    stage.place(35, 26, 13, centre);
+    azimuth = 35;
+    frame();
     for (let s = showMs / 1000; s > 0; s--) { overlay.textContent = String(s); await sleep(1000); }
     overlay.textContent = '';
     showing = false;
-    if (turnView) stage.place(125, 26, 13, centre);
+    if (turnView) { azimuth = 125; frame(); }
     refresh();
     LB.enabled = true;
     commitB.disabled = false;

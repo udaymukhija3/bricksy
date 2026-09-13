@@ -12,7 +12,7 @@ body { font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
 header { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; }
 .brand { font-weight: 700; font-size: 18px; letter-spacing: 0.02em; }
 .brand .sub { color: var(--muted); font-weight: 400; font-size: 12px; margin-left: 8px; }
-.hud { display: flex; gap: 14px; align-items: center; color: var(--muted); }
+.hud { display: flex; gap: 14px; align-items: center; color: var(--muted); flex-wrap: wrap; }
 .hud b { color: var(--text); font-variant-numeric: tabular-nums; }
 .hud select { font: inherit; background: var(--raised); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; }
 .pill { padding: 2px 8px; border-radius: 999px; background: var(--raised); color: var(--text); font-size: 12px; }
@@ -122,3 +122,62 @@ footer a { color: var(--muted); }
 .concept { display: grid; gap: 8px; color: var(--muted); }
 .concept h4 { margin: 6px 0 0; color: var(--text); font-size: 14px; }
 .concept p { margin: 0; }
+
+/* ---- responsive / touch ---- */
+html { -webkit-text-size-adjust: 100%; }
+button, .chip, .grid .cell, .choice { touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+#app { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); padding-bottom: max(28px, env(safe-area-inset-bottom)); }
+
+/* match mode: portrait stacks YOU over TARGET */
+#stage.split.portrait::after { left: 0; right: 0; top: 50%; bottom: auto; width: auto; height: 1px; }
+#stage.split.portrait .viewlabel.right { left: 14px; top: calc(50% + 10px); }
+
+.grid.ro .cell { width: 22px; height: 22px; border-radius: 3px; }
+@media (pointer: coarse) {
+  button { min-height: 44px; }
+  .grid.ro .cell { width: 24px; height: 24px; min-height: 0; }
+  button.mv { min-height: 56px; }
+  .grid .cell { width: 36px; height: 36px; }
+  .grid { gap: 4px; }
+  footer .keys, kbd { display: none; }
+  .hud select { min-height: 36px; }
+}
+
+@media (max-width: 640px) {
+  #app { padding-top: 8px; gap: 8px; }
+  .brand { font-size: 16px; }
+  .brand .sub { display: none; }
+  .hud { gap: 10px; font-size: 13px; }
+  #instructions { font-size: 12.5px; line-height: 1.35; }
+  #stage, .sk-stage { height: 40dvh; min-height: 220px; }
+  #stage.split { height: 46dvh; }
+  .choices .choice { flex: 1 1 calc(50% - 8px); display: grid; place-items: center; }
+  #panel, .sk-panel { padding: 10px; gap: 8px; }
+  #moves { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  button.mv { padding: 8px 4px; }
+  button.mv .ax { font-size: 15px; }
+  button.mv .deg { font-size: 11px; }
+  #actions { flex-wrap: wrap; }
+  #actions button.primary { flex: 1 1 100%; }
+  #queue { min-height: 40px; }
+  footer { font-size: 11px; }
+  .cards { grid-template-columns: 1fr; }
+  .choice svg { width: 72px; height: 72px; }
+  .layers { gap: 10px; }
+}
+
+/* short landscape (phones held sideways): scene left, controls right */
+@media (orientation: landscape) and (max-height: 540px) {
+  #app { padding: 0; max-width: none; }
+  #app.layout, .sk.layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 38%); grid-template-rows: auto minmax(0, 1fr) auto; column-gap: 10px; row-gap: 6px; height: 100dvh; box-sizing: border-box; padding: 6px max(10px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); }
+  .layout > header { grid-column: 1 / -1; }
+  .layout > #instructions { display: none; }
+  .layout > #stage, .layout > .sk-stage { grid-column: 1; grid-row: 2; height: auto; min-height: 0; }
+  .layout > #panel, .layout > .sk-panel { grid-column: 2; grid-row: 2; overflow: auto; min-height: 0; align-content: start; }
+  .layout > footer { grid-column: 1 / -1; }
+  #moves { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  button.mv { min-height: 44px; padding: 6px 4px; }
+  #instructions { display: none; }
+  .brand .sub { display: none; }
+}
+.hud .stat, .hud .pill, .hud label { white-space: nowrap; }

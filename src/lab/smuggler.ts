@@ -126,9 +126,10 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   function look(i: number, animate = false) {
     const z = i < run.walls.length ? (restZ(i) + run.walls[i].z) / 2 : run.walls[run.walls.length - 1].z - 3;
     const target = new THREE.Vector3(cx + 0.5, cy - 0.5, z);
-    if (!animate) { stage.place(30, 18, 24, target); return; }
+    const dist = stage.fit(7);
+    if (!animate) { stage.place(30, 18, dist, target); return; }
     const from = stage.lookAt.clone();
-    return stage.tween(600, (t) => stage.place(30, 18, 24, from.clone().lerp(target, easeOut(t))));
+    return stage.tween(600, (t) => stage.place(30, 18, dist, from.clone().lerp(target, easeOut(t))));
   }
 
   /** A passed wall turns to glass so the piece stays visible behind it. */
@@ -199,6 +200,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   }
 
   build();
+  stage.onResize = () => look(Math.min(wallIdx, run.walls.length - 1));
   if (import.meta.env.DEV) Object.assign(window, { lab: { get run() { return run; }, get cells() { return cells; }, passes, MOVES, rotateCell, normalize } });
   const onKey = (e: KeyboardEvent) => { if (e.key === 'Enter' && !Q.enabled) (panelEl.querySelector('#post:not([hidden]) button.primary') as HTMLButtonElement | null)?.click(); };
   window.addEventListener('keydown', onKey);

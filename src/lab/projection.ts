@@ -83,6 +83,9 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     hintEl.textContent = `${n} cubes in a ${dims.w}×${dims.h}×${dims.d} box. Placed: ${cells.length}/${n}.`;
   }
 
+  const frame = () => stage.place(35, 28, stage.fit(Math.hypot(dims.w, dims.h, dims.d) / 2 + 0.6), [(dims.w - 1) / 2, (dims.h - 1) / 2 - 0.3, (dims.d - 1) / 2]);
+  stage.onResize = frame;
+
   function newCase() {
     hidden = makeCase(dims, n, mulberry32(Date.now()));
     target = project(hidden, dims);
@@ -92,7 +95,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     grids(views, target);
     resultBox.hidden = true;
     refresh();
-    stage.place(35, 28, 13 + dims.w, [(dims.w - 1) / 2, (dims.h - 1) / 2 - 0.3, (dims.d - 1) / 2]);
+    frame();
     commitB.disabled = clearB.disabled = false;
     LB.enabled = true;
     P.message('');

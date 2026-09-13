@@ -41,6 +41,8 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   const commitB = h('button.primary', { onclick: commit, title: 'Enter' }, 'Fold it ↵') as HTMLButtonElement;
   panelEl.append(h('p', { style: { margin: 0, color: 'var(--muted)' } }, 'Click the face you think ends up opposite the highlighted one.'), h('div#actions', {}, commitB));
   const P = panel(panelEl);
+  const frame = () => stage.place(20, 46, stage.fit(2.7, 1.02), [0, -0.3, 0]);
+  stage.onResize = frame;
 
   function setBorder(i: number, border: string | null) {
     const m = faces[i].material as THREE.MeshStandardMaterial;
@@ -84,7 +86,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     cubeCentre = new THREE.Vector3(-cx, -0.5, -cz); // where the cube's centre sits once folded
     world.position.set(0, 0, 0);
     world.add(groups[0]);
-    stage.place(20, 46, 8.5, [0, -0.3, 0]);
+    frame();
     commitB.disabled = false;
     P.message('');
     P.clearPost();

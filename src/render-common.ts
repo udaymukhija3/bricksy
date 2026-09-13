@@ -16,6 +16,16 @@ export const COLOR_OK = 0x46a758;
 export const COLOR_BAD = 0xe5484d;
 
 export const easeInOut = (t: number) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
+
+/** Touch-first device (phone/tablet): bigger targets, cheaper shadows. */
+export const isCoarse = () => typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+
+/** Camera distance at which a sphere of radius r around the look-at point fits the view, whatever the aspect. */
+export function fitDistance(camera: THREE.PerspectiveCamera, r: number, margin = 1.12) {
+  const vfov = THREE.MathUtils.degToRad(camera.fov) / 2;
+  const hfov = Math.atan(Math.tan(vfov) * camera.aspect);
+  return (r * margin) / Math.sin(Math.min(vfov, hfov));
+}
 export const easeIn = (t: number) => t * t * t;
 export const easeOut = (t: number) => 1 - (1 - t) ** 3;
 
@@ -56,7 +66,8 @@ export function addLights(scene: THREE.Scene) {
   scene.add(new THREE.HemisphereLight(0xffffff, 0x2a2d3a, 1.1));
   const sun = new THREE.DirectionalLight(0xffffff, 2.2);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
+  const size = isCoarse() ? 1024 : 2048;
+  sun.shadow.mapSize.set(size, size);
   Object.assign(sun.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9, near: 1, far: 60 });
   scene.add(sun);
   return sun;

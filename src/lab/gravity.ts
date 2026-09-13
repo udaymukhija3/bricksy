@@ -67,6 +67,8 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   panelEl.append(h('p', { style: { margin: 0, color: 'var(--muted)' } }, 'Click the cube you think lands in the orange socket after the turn.'), h('div#actions', {}, commitB));
   const P = panel(panelEl);
   const off = () => (n - 1) / 2;
+  const frame = () => stage.place(35, 24, stage.fit((n * Math.sqrt(3)) / 2 + 0.4), [0, -0.3, 0]);
+  stage.onResize = frame;
 
   function build() {
     world.clear();
@@ -86,7 +88,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     socket.position.set(room.socket[0] - c, room.socket[1] - c, room.socket[2] - c);
     socket.add(new THREE.LineSegments(edgeGeo, new THREE.LineBasicMaterial({ color: 0xf5a524 })));
     world.add(socket);
-    stage.place(35, 24, 6 + n * 2.4, [0, -0.3, 0]);
+    frame();
     picked = -1;
     commitB.disabled = false;
     P.message('');

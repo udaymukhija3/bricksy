@@ -1,5 +1,6 @@
 // The lab: one sketch per idea, hash-routed. Sketches register in ROSTER.
 import '../style.css';
+import '../pwa';
 import { h } from './kit';
 import type { SketchDef } from './types';
 import { smuggler } from './smuggler';
@@ -14,8 +15,8 @@ import { gears } from './gears';
 import { concepts } from './concepts';
 
 const ROSTER: SketchDef[] = [
-  { id: 'pack', title: 'Pack', tagline: 'Turn the piece so it drops into the hole. Lives, score, stages.', skill: 'mental rotation', status: 'flagship', href: '/' },
-  { id: 'match', title: 'Transform Combo', tagline: 'Find the turn sequence that maps one shape onto another.', skill: 'rotation sequencing', status: 'playable', href: '/match.html' },
+  { id: 'pack', title: 'Pack', tagline: 'Turn the piece so it drops into the hole. Lives, score, stages.', skill: 'mental rotation', status: 'flagship', href: './' },
+  { id: 'match', title: 'Transform Combo', tagline: 'Find the turn sequence that maps one shape onto another.', skill: 'rotation sequencing', status: 'playable', href: './match.html' },
   smuggler, mirror, projection, hidden, copycat, slice, gravity, fold, gears, ...concepts,
 ];
 
@@ -32,7 +33,7 @@ function renderIndex() {
     );
   });
   app.replaceChildren(
-    h('header', {}, h('div.brand', {}, 'bricksy ', h('span.sub', {}, 'lab · one sketch per idea')), h('div.hud', {}, h('a', { href: '/' }, 'pack ↗'))),
+    h('header', {}, h('div.brand', {}, 'bricksy ', h('span.sub', {}, 'lab · one sketch per idea')), h('div.hud', {}, h('a', { href: './' }, 'pack ↗'))),
     h('p#instructions', {}, 'Every sketch keeps one rule: ', h('b', {}, 'predict → commit → reality executes'), '. The point is to see which mechanics make the spatial skill necessary, and which of them feel like a game.'),
     h('div.cards', {}, ...cards),
   );
@@ -42,7 +43,7 @@ function renderSketch(def: SketchDef) {
   const stageEl = h('div.sk-stage');
   const panelEl = h('div#panel.sk-panel');
   const hudEl = h('div.hud');
-  const frame = h('div.sk', {},
+  const frame = h('div.sk.layout', {},
     h('header', {}, h('div.brand', {}, h('a', { href: '#/' }, '← lab'), ' ', def.title, ' ', h('span.sub', {}, def.skill)), hudEl),
     h('p#instructions', {}, def.tagline, ' ', h('span#hint')),
     stageEl, panelEl,
