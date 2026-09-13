@@ -10,6 +10,18 @@ npm run dev      # http://localhost:5173  (pack)  ·  /lab.html  (every idea)  �
 npm test         # exact-geometry checks: rotations, cavities/landing, cube-net folding
 ```
 
+Live: https://udaymukhija3.github.io/bricksy/ — deployed by `.github/workflows/pages.yml`
+on every push to `main` (builds with `GH_PAGES=1` so asset paths sit under `/bricksy/`).
+It is a PWA: on a phone, "Add to Home Screen" gives a full-screen, offline-capable app.
+
+## Mobile
+
+Everything is touch-first: no hover-only affordances (turn buttons light their
+axis while a finger is down), targets ≥ 44px, and cameras fit the scene at any
+aspect ratio and reframe on rotation. Phone portrait fits scene + controls on
+one screen; phones held sideways get the scene on the left and controls on the
+right; match mode stacks YOU over TARGET when the halves would be too narrow.
+
 ## Prototype 1 — pack (`/`)
 
 A piece hovers over a mold with a hole in it. Queue quarter-turns about the
