@@ -1,12 +1,27 @@
 # bricksy
 
-Playable experiments for a spatial-reasoning game. One rule runs through all of
-them: **predict → commit → watch reality execute your prediction.** Nothing moves
-until you commit, so the only way to check a candidate move is to simulate it.
+Small spatial games where you have to see it in your head first. One rule in
+every game: **predict → commit → watch reality execute your prediction.**
+Each game has a **daily** (the same puzzles for everyone, a shareable result)
+and an **endless** mode (lives, score, best).
+
+| Game | URL | You commit to… | Reality then… |
+| --- | --- | --- | --- |
+| 📦 **Pack** | `/pack/` | a turn sequence | drops the piece; fits or collides |
+| 🔪 **Cut** | `/cut/` | one of four outlines | cuts the solid, lifts the half away |
+| 📐 **Fold** | `/fold/` | which face ends opposite | folds the net, tumbles the cube |
+| 🎲 **Tilt** | `/tilt/` | which cube reaches the socket | turns the room; cubes fall |
+| 🪞 **Mirror** | `/mirror/` | "rotation" or "mirror" | turns A to its best fit; uncovered cells show red |
+| ⚙️ **Gears** | `/gears/` | direction (then speed) of the last gear | runs the train |
+| 🧱 **Smuggle** | `/smuggle/` | turns for the next wall (orientation carries over) | flies through or bonks |
+
+`/` is the hub. `/lab.html` keeps the sketches that aren't games yet
+(Projection Detective, Hidden Structure, Copycat) and the concept pages.
+`/match.html` is prototype 0, the control condition.
 
 ```bash
 npm install
-npm run dev      # http://localhost:5173  (pack)  ·  /lab.html  (every idea)  ·  /match.html
+npm run dev      # http://localhost:5173
 npm test         # exact-geometry checks: rotations, cavities/landing, cube-net folding
 ```
 
@@ -22,7 +37,16 @@ aspect ratio and reframe on rotation. Phone portrait fits scene + controls on
 one screen; phones held sideways get the scene on the left and controls on the
 right; match mode stacks YOU over TARGET when the halves would be too narrow.
 
-## Prototype 1 — pack (`/`)
+## Product layer (`src/run.ts`)
+
+Every game shares one run loop: a daily of N rounds seeded from the date and
+the game id (so the puzzles are identical for everyone that day), an endless
+mode with three lives, best score and best streak in `localStorage`, a
+result card with a Wordle-style 🟩🟥 grid, and Share (Web Share API, falling
+back to the clipboard). Difficulty is a function of the round index in a
+daily and of the score in endless.
+
+## Pack (`/pack/`)
 
 A piece hovers over a mold with a hole in it. Queue quarter-turns about the
 world axes, then **Drop it**. The piece turns, falls, and either seats flush or

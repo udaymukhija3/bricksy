@@ -44,6 +44,7 @@ let attempt = 1;
 let runId = 0;
 let firstTry = 0;
 let presented = 0;
+let results: boolean[] = [];
 let best = Number(localStorage.getItem(BEST_KEY) ?? 0) || 0;
 let tPresent = 0;
 let tFirstInput = 0;
@@ -57,7 +58,7 @@ const el = {
   undo: $<HTMLButtonElement>('undo'), clear: $<HTMLButtonElement>('clear'), commit: $<HTMLButtonElement>('commit'),
   message: $('message'), post: $('post'),
   retry: $<HTMLButtonElement>('retry'), replay: $<HTMLButtonElement>('replay'), skip: $<HTMLButtonElement>('skip'), next: $<HTMLButtonElement>('next'),
-  over: $('over'), overScore: $('overScore'), overBest: $('overBest'), overDetail: $('overDetail'), again: $<HTMLButtonElement>('again'),
+  over: $('over'), overScore: $('overScore'), overBest: $('overBest'), overDetail: $('overDetail'), overResults: $('overResults'), again: $<HTMLButtonElement>('again'), share: $<HTMLButtonElement>('share'),
   stageBox: $('stage'), puzzleId: $('puzzleId'), export: $('export'), reset: $('resetProgress'),
 };
 const postButtons = [el.retry, el.replay, el.skip, el.next];
@@ -84,6 +85,7 @@ el.replay.addEventListener('click', replay);
 el.skip.addEventListener('click', next);
 el.next.addEventListener('click', next);
 el.again.addEventListener('click', startRun);
+el.share.addEventListener('click', share);
 el.export.addEventListener('click', () => log.export());
 el.mute.addEventListener('click', () => { el.mute.textContent = sfx.toggle() ? '🔇' : '🔊'; });
 el.mute.textContent = sfx.muted ? '🔇' : '🔊';
@@ -213,6 +215,7 @@ function startRun() {
   lives = LIVES;
   firstTry = 0;
   presented = 0;
+  results = [];
   log.push('run_start', { runId });
   newPiece();
 }
@@ -365,7 +368,17 @@ function endRun() {
   el.overScore.textContent = String(score);
   el.overBest.textContent = String(best);
   el.overDetail.textContent = `${firstTry} of ${presented} pieces fitted first try · reached “${current.name}”`;
+  el.overResults.textContent = results.map((r) => (r ? '🟩' : '🟥')).join('');
   setPhase('over');
+}
+
+async function share() {
+  const text = `📦 Pack · ${score} fitted · reached ${current.name}\n${results.map((r) => (r ? '🟩' : '🟥')).join('')}\n${location.origin}${location.pathname}`;
+  try {
+    if (navigator.share) { await navigator.share({ text }); return; }
+    await navigator.clipboard.writeText(text);
+    toast('Copied to clipboard');
+  } catch { /* cancelled */ }
 }
 
 startRun();

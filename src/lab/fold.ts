@@ -1,9 +1,10 @@
 // Fold: a cube net with symbols. Which face ends up opposite the marked one? Commit, then it folds.
 import * as THREE from 'three';
 import { NETS, hinges, hingeRotation, opposite, type Net } from './nets';
-import { SketchStage, panel, hud, h, mulberry32, pick, sleep, easeInOut } from './kit';
+import { SketchStage, panel, h, mulberry32, pick, sleep, easeInOut } from './kit';
 import type { SketchDef, MountCtx } from './types';
 import { Log } from '../log';
+import { Run } from '../run';
 
 const SYMBOLS = ['●', '▲', '■', '★', '◆', '✚'];
 const COLORS = ['#e5484d', '#46a758', '#3e8ff5', '#f5a524', '#b56be0', '#2ec4b6'];
@@ -30,8 +31,7 @@ function faceTexture(symbol: string, color: string, border: string | null) {
 function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   const log = new Log();
   const stage = new SketchStage(stageEl, { ground: -1.6 });
-  const H = hud(hudEl, ['right', 'seen']);
-  let right = 0, seen = 0;
+  const run = new Run({ id: 'fold', name: 'Fold', icon: '📐', dailyRounds: 8 }, hudEl, stageEl);
   let net!: Net, asked = 0, answer = 0, picked = -1;
   let faces: THREE.Mesh[] = [];
   let cubeCentre = new THREE.Vector3();
@@ -52,8 +52,9 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   }
 
   function build() {
-    const rng = mulberry32(Date.now());
-    net = pick(NETS, rng);
+    const rng = mulberry32(run.nextSeed());
+    // Early rounds use the 1-4-1 family (a visible row of four); later, every net.
+    net = pick(run.level < 3 ? NETS.slice(0, 6) : NETS, rng);
     asked = Math.floor(rng() * 6);
     answer = opposite(net, asked);
     picked = -1;
@@ -91,8 +92,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     P.message('');
     P.clearPost();
     hintEl.textContent = `Which face ends up opposite ${SYMBOLS[asked]}?`;
-    H.set('right', right); H.set('seen', seen);
-    log.push('present', { sketch: 'fold', net, asked });
+    log.push('present', { sketch: 'fold', mode: run.mode, level: run.level, net, asked });
   }
 
   function setFold(angle: number) {
@@ -118,9 +118,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   async function commit() {
     if (picked < 0) { P.message('Pick a face first.', 'bad'); return; }
     commitB.disabled = true;
-    seen++;
     const ok = picked === answer;
-    if (ok) right++;
     log.push('result', { sketch: 'fold', picked, answer, ok });
     await stage.tween(1600, (t) => setFold(easeInOut(t) * Math.PI / 2));
     await sleep(200);
@@ -132,8 +130,9 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     // Tumble so both the marked face and its opposite come into view.
     const axis = new THREE.Vector3(1, 0.6, 0.3).normalize();
     await stage.tween(3200, (t) => world.quaternion.setFromAxisAngle(axis, easeInOut(t) * Math.PI * 2));
+    ok ? run.hit() : run.miss();
     P.message(ok ? `${SYMBOLS[answer]} is opposite ${SYMBOLS[asked]}.` : `${SYMBOLS[answer]} is opposite ${SYMBOLS[asked]} — ${SYMBOLS[picked]} ended up ${describe(picked)}.`, ok ? 'ok' : 'bad');
-    H.set('right', right); H.set('seen', seen);
+    if (run.over) { run.showOver(build); return; }
     P.post([{ label: 'Next ↵', primary: true, onClick: build }, { label: 'Unfold', onClick: async () => { await stage.tween(900, (t) => world.quaternion.setFromAxisAngle(axis, (1 - easeInOut(t)) * Math.PI * 2)); await stage.tween(400, (t) => world.position.lerpVectors(shift, new THREE.Vector3(), easeInOut(t))); await stage.tween(1200, (t) => setFold((1 - easeInOut(t)) * Math.PI / 2)); } }]);
   }
 
@@ -142,6 +141,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     return i === asked ? 'the same face' : 'next to it (they share an edge)';
   }
 
+  run.onModeChange = build;
   build();
   const onKey = (e: KeyboardEvent) => { if (e.key === 'Enter') { if (!commitB.disabled) commit(); else (panelEl.querySelector('#post:not([hidden]) button.primary') as HTMLButtonElement | null)?.click(); } };
   window.addEventListener('keydown', onKey);
@@ -149,7 +149,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
 }
 
 export const fold: SketchDef = {
-  id: 'fold', title: 'Fold', status: 'playable', skill: 'net → solid',
-  tagline: 'A flat net of a cube, each face marked. Which face ends up opposite the highlighted one? Commit, then watch it fold.',
+  id: 'fold', title: 'Fold', status: 'playable', skill: 'net → solid', icon: '📐',
+  tagline: 'A flat net, each face marked. Which face lands opposite the highlighted one? Commit, then watch it fold.',
   mount,
 };

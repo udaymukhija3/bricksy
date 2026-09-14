@@ -2,9 +2,10 @@
 // After you commit, the left shape rotates to its best fit and slides onto the right one.
 import * as THREE from 'three';
 import { isPlanar, normalize, orientations, randomPolycube, shapeKey, type Cell, moveLabel } from '../polycube';
-import { SketchStage, cubeGroup, choices, panel, hud, h, mulberry32, pick, sleep, pulseMats, easeInOut, COLOR_OK, COLOR_BAD, cellKey } from './kit';
+import { SketchStage, cubeGroup, choices, panel, h, mulberry32, pick, sleep, pulseMats, easeInOut, COLOR_OK, COLOR_BAD, cellKey } from './kit';
 import type { SketchDef, MountCtx } from './types';
 import { Log } from '../log';
+import { Run } from '../run';
 
 const mirrorX = (cells: Cell[]) => normalize(cells.map(([x, y, z]) => [-x + 0, y, z] as Cell));
 
@@ -29,9 +30,9 @@ function makeTrap(cubes: number, rng: () => number) {
 function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   const log = new Log();
   const stage = new SketchStage(stageEl, { fov: 14, ground: -2.6 });
-  const H = hud(hudEl, ['score', 'streak', 'seen']);
-  let cubes = 5, score = 0, streak = 0, seen = 0;
-  let trap = makeTrap(cubes, mulberry32(Date.now()));
+  const run = new Run({ id: 'mirror', name: 'Mirror', icon: '🪞', dailyRounds: 10 }, hudEl, stageEl);
+  const cubesFor = (level: number) => Math.min(7, 5 + Math.floor(level / 4));
+  let trap = makeTrap(cubesFor(run.level), mulberry32(run.nextSeed()));
   let A!: ReturnType<typeof cubeGroup>, B!: ReturnType<typeof cubeGroup>;
   const world = new THREE.Group();
   stage.scene.add(world);
@@ -73,9 +74,8 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     commitB.disabled = false;
     P.message('');
     P.clearPost();
-    hintEl.textContent = `${cubes} cubes.`;
-    H.set('score', score); H.set('streak', streak); H.set('seen', seen);
-    log.push('present', { sketch: 'mirror', a: trap.a, b: trap.b, isMirror: trap.isMirror });
+    hintEl.textContent = `${trap.a.length} cubes.`;
+    log.push('present', { sketch: 'mirror', mode: run.mode, level: run.level, a: trap.a, b: trap.b, isMirror: trap.isMirror });
   }
 
   async function commit() {
@@ -84,7 +84,6 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     const ok = (said === 'mir') === trap.isMirror;
     C.enabled = false;
     commitB.disabled = true;
-    seen++;
     log.push('result', { sketch: 'mirror', said, isMirror: trap.isMirror, ok });
 
     // Best-fit orientation of A against B, by shared cells after normalisation.
@@ -117,12 +116,14 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
       void pulseMats(stage.ticker, [A.mats.base, A.mats.marker], COLOR_BAD);
       P.message(ok ? `Right — the closest rotation still leaves ${miss.length} cell${miss.length > 1 ? 's' : ''} uncovered (red). B is A's mirror.` : `It's a mirror: even the best rotation leaves ${miss.length} cell${miss.length > 1 ? 's' : ''} uncovered (red).`, ok ? 'ok' : 'bad');
     }
-    if (ok) { score++; streak++; if (streak % 4 === 0 && cubes < 7) cubes++; } else streak = 0;
-    H.set('score', score); H.set('streak', streak); H.set('seen', seen);
     C.mark(said, ok ? 'right' : 'wrong');
-    P.post([{ label: 'Next ↵', primary: true, onClick: () => { trap = makeTrap(cubes, mulberry32(Date.now())); build(); } }]);
+    ok ? run.hit() : run.miss();
+    const next = () => { trap = makeTrap(cubesFor(run.level), mulberry32(run.nextSeed())); build(); };
+    if (run.over) run.showOver(next);
+    else P.post([{ label: 'Next ↵', primary: true, onClick: next }]);
   }
 
+  run.onModeChange = () => { trap = makeTrap(cubesFor(run.level), mulberry32(run.nextSeed())); build(); };
   build();
   const onKey = (e: KeyboardEvent) => {
     if (e.key === 'Enter') { if (!commitB.disabled) commit(); else (panelEl.querySelector('#post:not([hidden]) button.primary') as HTMLButtonElement | null)?.click(); }
@@ -134,7 +135,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
 }
 
 export const mirror: SketchDef = {
-  id: 'mirror', title: 'Mirror Trap', status: 'playable', skill: 'rotation vs reflection',
-  tagline: 'Two shapes that look nearly identical. Can A actually be rotated into B, or is B the mirror image? Decide, then watch A try.',
+  id: 'mirror', title: 'Mirror', status: 'playable', skill: 'rotation vs reflection', icon: '🪞',
+  tagline: 'Two shapes, nearly identical. Can A be rotated into B, or is B the mirror image? Decide, then watch A try.',
   mount,
 };

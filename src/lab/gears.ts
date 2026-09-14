@@ -1,8 +1,9 @@
 // Mechanism: a gear train. The red gear turns clockwise. Which way does the last gear turn, and how fast?
 import * as THREE from 'three';
-import { SketchStage, choices, panel, hud, h, mulberry32, pick, sleep } from './kit';
+import { SketchStage, choices, panel, h, mulberry32, pick, sleep } from './kit';
 import type { SketchDef, MountCtx } from './types';
 import { Log } from '../log';
+import { Run } from '../run';
 
 const MODULE = 0.32;
 interface Gear { x: number; y: number; teeth: number; theta: number; omega: number; out?: { teeth: number }; mesh: THREE.Group }
@@ -88,8 +89,10 @@ function makeTrain(count: number, compounds: number, rng: () => number) {
 function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   const log = new Log();
   const stage = new SketchStage(stageEl, { ground: null, fov: 30 });
-  const H = hud(hudEl, ['right', 'seen']);
-  let count = 4, compounds = 0, askSpeed = false, right = 0, seen = 0;
+  const run = new Run({ id: 'gears', name: 'Gears', icon: '⚙️', dailyRounds: 8 }, hudEl, stageEl);
+  /** Difficulty by level: longer trains, then the speed question, then compound gears. */
+  const setup = (level: number) => ({ count: Math.min(7, 4 + Math.floor(level / 2)), askSpeed: level >= 3, compounds: level >= 8 ? 2 : level >= 5 ? 1 : 0 });
+  let askSpeed = false, compounds = 0;
   let gears: Gear[] = [];
   const world = new THREE.Group();
   stage.scene.add(world);
@@ -102,9 +105,12 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   let CD!: ReturnType<typeof choices<'cw' | 'ccw'>>, CS!: ReturnType<typeof choices<'faster' | 'slower' | 'same'>>;
 
   function build() {
-    const rng = mulberry32(Date.now());
+    const rng = mulberry32(run.nextSeed());
+    const d = setup(run.level);
+    askSpeed = d.askSpeed;
+    compounds = d.compounds;
     world.clear();
-    const model = makeTrain(count, compounds, rng);
+    const model = makeTrain(d.count, compounds, rng);
     gears = model.map((g, i) => {
       const group = new THREE.Group();
       const color = i === 0 ? 0xe5484d : i === model.length - 1 ? 0x3e8ff5 : 0x8a97b3;
@@ -139,8 +145,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     P.clearPost();
     const teethList = gears.map((g) => g.out ? `${g.teeth}/${g.out.teeth}` : String(g.teeth)).join(' → ');
     hintEl.textContent = `${gears.length} gears (${teethList} teeth${compounds ? '; a/b is two wheels on one axle' : ''}). Seen from the front, the red gear turns clockwise.`;
-    H.set('right', right); H.set('seen', seen);
-    log.push('present', { sketch: 'gears', gears: gears.map((g) => ({ teeth: g.teeth, out: g.out?.teeth })) });
+    log.push('present', { sketch: 'gears', mode: run.mode, level: run.level, gears: gears.map((g) => ({ teeth: g.teeth, out: g.out?.teeth })) });
   }
 
   /** Frame the train for the current aspect ratio. */
@@ -177,8 +182,6 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     const ok = dirOk && speedOk;
     CD.enabled = CS.enabled = false;
     commitB.disabled = true;
-    seen++;
-    if (ok) right++;
     log.push('result', { sketch: 'gears', dir: CD.picked, speed: CS.picked, dirOk, speedOk, ratio });
     running = true;
     t0 = performance.now();
@@ -186,13 +189,13 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     CD.mark(last.omega < 0 ? 'cw' : 'ccw', 'right');
     if (!dirOk) CD.mark(CD.picked, 'wrong');
     if (askSpeed) { CS.mark(speedTruth, 'right'); if (!speedOk) CS.mark(CS.picked!, 'wrong'); }
+    ok ? run.hit() : run.miss();
     P.message(`The last gear turns ${last.omega < 0 ? 'clockwise' : 'counter-clockwise'} at ${ratio.toFixed(2)}× the red gear's speed.${ok ? '' : ' Reality disagrees with your pick.'}`, ok ? 'ok' : 'bad');
-    H.set('right', right); H.set('seen', seen);
-    if (ok && right % 3 === 0) { if (!askSpeed) askSpeed = true; else if (count < 7) count++; else compounds = Math.min(2, compounds + 1); }
-    if (ok && right === 3) compounds = 1;
-    P.post([{ label: 'Next ↵', primary: true, onClick: build }]);
+    if (run.over) run.showOver(build);
+    else P.post([{ label: 'Next ↵', primary: true, onClick: build }]);
   }
 
+  run.onModeChange = build;
   build();
   const onKey = (e: KeyboardEvent) => { if (e.key === 'Enter') { if (!commitB.disabled) commit(); else (panelEl.querySelector('#post:not([hidden]) button.primary') as HTMLButtonElement | null)?.click(); } };
   window.addEventListener('keydown', onKey);
@@ -200,7 +203,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
 }
 
 export const gears: SketchDef = {
-  id: 'gears', title: 'Mechanism', status: 'playable', skill: 'propagating motion through a system',
-  tagline: 'A gear train. The red gear turns clockwise. Which way does the blue gear turn — and faster or slower? Decide, then run the machine.',
+  id: 'gears', title: 'Gears', status: 'playable', skill: 'propagating motion through a system', icon: '⚙️',
+  tagline: 'The red gear turns clockwise. Which way does the blue gear go — and faster or slower? Decide, then run the machine.',
   mount,
 };

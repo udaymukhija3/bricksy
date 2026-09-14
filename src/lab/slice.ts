@@ -1,45 +1,49 @@
 // Slice: a solid and a cutting plane. Predict the cross-section before the blade goes through.
 import * as THREE from 'three';
-import { SketchStage, choices, panel, hud, h, mulberry32, pick, sleep, easeInOut, easeOut } from './kit';
+import { SketchStage, choices, panel, h, mulberry32, pick, sleep, easeInOut, easeOut } from './kit';
 import type { SketchDef, MountCtx } from './types';
 import { Log } from '../log';
+import { Run } from '../run';
 
 type P2 = [number, number];
-interface Solid { name: string; geo: THREE.BufferGeometry }
-interface Cut { n: THREE.Vector3; d: number; label: string }
+interface Solid { name: string; geo: THREE.BufferGeometry; tier: number }
+interface Cut { n: THREE.Vector3; d: number; label: string; tier: number }
 interface Section { loops: P2[][]; area: number; corners: number; aspect: number; svg: string }
 
 function solids(): Solid[] {
-  const g = (name: string, geo: THREE.BufferGeometry, rot?: (g: THREE.BufferGeometry) => void) => {
+  const g = (name: string, tier: number, geo: THREE.BufferGeometry, rot?: (g: THREE.BufferGeometry) => void) => {
     rot?.(geo);
-    return { name, geo: geo.toNonIndexed() };
+    return { name, tier, geo: geo.toNonIndexed() };
   };
   return [
-    g('cube', new THREE.BoxGeometry(2, 2, 2)),
-    g('cylinder', new THREE.CylinderGeometry(1, 1, 2.2, 48)),
-    g('cone', new THREE.ConeGeometry(1.1, 2.2, 48)),
-    g('sphere', new THREE.SphereGeometry(1.2, 48, 32)),
-    g('torus', new THREE.TorusGeometry(0.85, 0.4, 24, 64), (geo) => geo.rotateX(Math.PI / 2)),
-    g('square pyramid', new THREE.ConeGeometry(1.4, 2, 4), (geo) => geo.rotateY(Math.PI / 4)),
-    g('triangular prism', new THREE.CylinderGeometry(1.2, 1.2, 2.2, 3)),
-    g('hexagonal prism', new THREE.CylinderGeometry(1, 1, 2.2, 6)),
-    g('capsule', new THREE.CapsuleGeometry(0.7, 1.2, 8, 24)),
-    g('wedge', new THREE.CylinderGeometry(1.3, 1.3, 2, 3), (geo) => geo.rotateZ(Math.PI / 2)),
+    g('cube', 0, new THREE.BoxGeometry(2, 2, 2)),
+    g('cylinder', 0, new THREE.CylinderGeometry(1, 1, 2.2, 48)),
+    g('cone', 0, new THREE.ConeGeometry(1.1, 2.2, 48)),
+    g('sphere', 0, new THREE.SphereGeometry(1.2, 48, 32)),
+    g('square pyramid', 0, new THREE.ConeGeometry(1.4, 2, 4), (geo) => geo.rotateY(Math.PI / 4)),
+    g('triangular prism', 1, new THREE.CylinderGeometry(1.2, 1.2, 2.2, 3)),
+    g('hexagonal prism', 1, new THREE.CylinderGeometry(1, 1, 2.2, 6)),
+    g('wedge', 1, new THREE.CylinderGeometry(1.3, 1.3, 2, 3), (geo) => geo.rotateZ(Math.PI / 2)),
+    g('torus', 2, new THREE.TorusGeometry(0.85, 0.4, 24, 64), (geo) => geo.rotateX(Math.PI / 2)),
+    g('capsule', 2, new THREE.CapsuleGeometry(0.7, 1.2, 8, 24)),
   ];
 }
 
 const CUTS: Cut[] = [
-  { n: new THREE.Vector3(0, 1, 0), d: 0, label: 'horizontal, through the middle' },
-  { n: new THREE.Vector3(0, 1, 0), d: 0.55, label: 'horizontal, above the middle' },
-  { n: new THREE.Vector3(0, 1, 0), d: -0.6, label: 'horizontal, below the middle' },
-  { n: new THREE.Vector3(1, 0, 0), d: 0, label: 'vertical, through the middle' },
-  { n: new THREE.Vector3(1, 0, 0), d: 0.5, label: 'vertical, off-centre' },
-  { n: new THREE.Vector3(0, 0, 1), d: 0.45, label: 'vertical, off-centre' },
-  { n: new THREE.Vector3(1, 1, 0).normalize(), d: 0, label: 'tilted 45°' },
-  { n: new THREE.Vector3(0, 1, 1).normalize(), d: 0.3, label: 'tilted 45°, off-centre' },
-  { n: new THREE.Vector3(1, 1, 1).normalize(), d: 0, label: 'tilted on two axes' },
-  { n: new THREE.Vector3(1, -0.5, 0).normalize(), d: 0.2, label: 'steeply tilted' },
+  { n: new THREE.Vector3(0, 1, 0), d: 0, label: 'horizontal, through the middle', tier: 0 },
+  { n: new THREE.Vector3(1, 0, 0), d: 0, label: 'vertical, through the middle', tier: 0 },
+  { n: new THREE.Vector3(0, 1, 0), d: 0.55, label: 'horizontal, above the middle', tier: 1 },
+  { n: new THREE.Vector3(0, 1, 0), d: -0.6, label: 'horizontal, below the middle', tier: 1 },
+  { n: new THREE.Vector3(1, 0, 0), d: 0.5, label: 'vertical, off-centre', tier: 1 },
+  { n: new THREE.Vector3(0, 0, 1), d: 0.45, label: 'vertical, off-centre', tier: 1 },
+  { n: new THREE.Vector3(1, 1, 0).normalize(), d: 0, label: 'tilted 45°', tier: 2 },
+  { n: new THREE.Vector3(0, 1, 1).normalize(), d: 0.3, label: 'tilted 45°, off-centre', tier: 2 },
+  { n: new THREE.Vector3(1, 1, 1).normalize(), d: 0, label: 'tilted on two axes', tier: 3 },
+  { n: new THREE.Vector3(1, -0.5, 0).normalize(), d: 0.2, label: 'steeply tilted', tier: 3 },
 ];
+
+/** Difficulty by level: which solids and cuts are in play. */
+const tiers = (level: number) => ({ solid: level < 2 ? 0 : level < 5 ? 1 : 2, cut: level < 1 ? 0 : level < 3 ? 1 : level < 6 ? 2 : 3 });
 
 /** Plane basis (u, v) so 2D coordinates are stable across candidates. */
 function basis(n: THREE.Vector3) {
@@ -153,9 +157,8 @@ function svgOf(s: Section, scale: number) {
 function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   const log = new Log();
   const stage = new SketchStage(stageEl, { ground: -1.8 });
-  const H = hud(hudEl, ['right', 'seen']);
+  const run = new Run({ id: 'cut', name: 'Cut', icon: '🔪', dailyRounds: 8 }, hudEl, stageEl);
   const SOLIDS = solids();
-  let right = 0, seen = 0;
   const world = new THREE.Group();
   stage.scene.add(world);
   const choiceBox = h('div');
@@ -170,10 +173,11 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   stage.onResize = frame;
 
   function newCase() {
-    const rng = mulberry32(Date.now());
+    const rng = mulberry32(run.nextSeed());
+    const t = tiers(run.level);
     for (let tries = 0; tries < 200; tries++) {
-      const solid = pick(SOLIDS, rng);
-      const cut = pick(CUTS, rng);
+      const solid = pick(SOLIDS.filter((x) => x.tier <= t.solid), rng);
+      const cut = pick(CUTS.filter((x) => x.tier <= t.cut), rng);
       const answer = section(solid.geo, cut);
       if (!answer) continue;
       // Distractors: other cuts of the same solid first, then other solids — all visibly different.
@@ -211,8 +215,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     P.message('');
     P.clearPost();
     hintEl.textContent = `A ${solid.name}, cut ${cut.label}. Which outline does the blade leave?`;
-    H.set('right', right); H.set('seen', seen);
-    log.push('present', { sketch: 'slice', solid: solid.name, cut: cut.label });
+    log.push('present', { sketch: 'slice', mode: run.mode, level: run.level, solid: solid.name, cut: cut.label });
   }
 
   async function commit() {
@@ -221,10 +224,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     const ok = said === current.correctId;
     C.enabled = false;
     commitB.disabled = true;
-    seen++;
-    if (ok) right++;
     log.push('result', { sketch: 'slice', ok });
-    H.set('right', right); H.set('seen', seen);
 
     // The cut: two clipped copies, the upper half lifts away, both show the section face.
     const { solid, answer } = current;
@@ -264,10 +264,13 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     });
     C.mark(current.correctId, 'right');
     if (!ok) C.mark(said, 'wrong');
+    ok ? run.hit() : run.miss();
     P.message(ok ? 'That is the cut.' : 'The blade disagrees — the orange face is the real cross-section.', ok ? 'ok' : 'bad');
-    P.post([{ label: 'Next ↵', primary: true, onClick: newCase }]);
+    if (run.over) run.showOver(newCase);
+    else P.post([{ label: 'Next ↵', primary: true, onClick: newCase }]);
   }
 
+  run.onModeChange = newCase;
   newCase();
   const onKey = (e: KeyboardEvent) => {
     if (e.key === 'Enter') { if (!commitB.disabled) commit(); else (panelEl.querySelector('#post:not([hidden]) button.primary') as HTMLButtonElement | null)?.click(); }
@@ -278,7 +281,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
 }
 
 export const slice: SketchDef = {
-  id: 'slice', title: 'Slice', status: 'playable', skill: 'cross-section prediction',
-  tagline: 'A solid and a cutting plane. Pick the outline the blade will leave, then watch it cut.',
+  id: 'cut', title: 'Cut', status: 'playable', skill: 'cross-section prediction', icon: '🔪',
+  tagline: 'A solid and a blade. Call the cross-section, then watch it cut.',
   mount,
 };

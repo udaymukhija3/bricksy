@@ -5,7 +5,7 @@ export default defineConfig({
   base: process.env.GH_PAGES ? '/bricksy/' : '/',
   build: {
     rollupOptions: {
-      input: { main: 'index.html', match: 'match.html', lab: 'lab.html' },
+      input: { main: 'index.html', match: 'match.html', lab: 'lab.html', pack: 'pack/index.html', cut: 'cut/index.html', fold: 'fold/index.html', tilt: 'tilt/index.html', mirror: 'mirror/index.html', gears: 'gears/index.html', smuggle: 'smuggle/index.html' },
     },
   },
 });

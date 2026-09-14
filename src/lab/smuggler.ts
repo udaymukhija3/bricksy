@@ -2,9 +2,10 @@
 // Orientation carries over from wall to wall, so each wall is planned from where the last left you.
 import * as THREE from 'three';
 import { applyMoves, bboxMin, extents, isPlanar, normalize, orientations, randomPolycube, rotateCell, shapeKey, type Cell, type Move, MOVES, moveLabel } from '../polycube';
-import { SketchStage, cubeGroup, voxelMesh, turnQueue, panel, hud, mulberry32, pick, sleep, pulseMats, easeIn, easeOut, COLOR_OK, COLOR_BAD } from './kit';
+import { SketchStage, cubeGroup, voxelMesh, turnQueue, panel, mulberry32, pick, sleep, pulseMats, easeIn, easeOut, COLOR_OK, COLOR_BAD } from './kit';
 import type { SketchDef, MountCtx } from './types';
 import { Log } from '../log';
+import { Run } from '../run';
 
 const PLATE = 8, MARGIN = 2, GAP = 7;
 
@@ -77,13 +78,16 @@ function par(start: Cell[], walls: Wall[]) {
 function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   const log = new Log();
   const stage = new SketchStage(stageEl, { gizmo: true });
-  const H = hud(hudEl, ['wall', 'turns', 'par', 'runs']);
-  let cubes = 5, wallsN = 2, runs = 0;
-  let run = makeRun(cubes, wallsN, mulberry32(Date.now()));
+  // Each wall is a round: a hit if you pass it on the first send, a miss on the first bonk.
+  const game = new Run({ id: 'smuggle', name: 'Smuggle', icon: '🧱', dailyRounds: 6 }, hudEl, stageEl);
+  const WALLS = 3;
+  const cubesFor = (level: number) => (level < 3 ? 5 : 6);
+  let run = makeRun(cubesFor(game.level), WALLS, mulberry32(game.nextSeed()));
   let cells: Cell[] = [];
   let moves: Move[] = [];
   let wallIdx = 0;
   let turns = 0;
+  let wallMissed = false;
   let piece!: ReturnType<typeof cubeGroup>;
   let wallMeshes: ReturnType<typeof voxelMesh>[] = [];
   const world = new THREE.Group();
@@ -111,16 +115,22 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     piece.group.position.set(cx, cy, restZ(0));
     world.add(piece.group);
     look(0);
-    H.set('wall', `1/${run.walls.length}`);
-    H.set('turns', 0);
-    H.set('par', run.par);
-    H.set('runs', runs);
-    hintEl.textContent = `${run.walls.length} walls, ${cubes} cubes. Par ${run.par}.`;
+    wallMissed = false;
+    status();
     Q.reset();
     Q.enabled = true;
     P.message('');
     P.clearPost();
     log.push('present', { sketch: 'smuggler', start: run.start, walls: run.walls.map((w) => [...w.opening]), par: run.par });
+  }
+
+  function status() {
+    hintEl.textContent = `Wall ${Math.min(wallIdx + 1, run.walls.length)}/${run.walls.length} · ${turns} turn${turns === 1 ? '' : 's'} used · par ${run.par} · ${run.shape.length} cubes.`;
+  }
+
+  function newRun() {
+    run = makeRun(cubesFor(game.level), WALLS, mulberry32(game.nextSeed()));
+    build();
   }
 
   function look(i: number, animate = false) {
@@ -161,7 +171,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     }
     stage.highlightAxis(null);
     turns += queued.length;
-    H.set('turns', turns);
+    status();
 
     const wall = run.walls[wallIdx];
     const ok = passes(cells, wall);
@@ -176,16 +186,18 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
       await stage.tween(500, (t) => piece.group.position.lerpVectors(front, through, easeOut(t)));
       void pulseMats(stage.ticker, [piece.mats.base, piece.mats.marker], COLOR_OK);
       fadeWall(wallMeshes[wallIdx]);
+      if (!wallMissed) game.hit();
+      wallMissed = false;
       wallIdx++;
+      if (game.over) { status(); game.showOver(newRun); return; }
       if (wallIdx >= run.walls.length) {
-        const verdict = turns === run.par ? 'Par. Clean.' : turns < run.par ? 'Under par?! (par is a lower bound — please export the log)' : `${turns - run.par} over par.`;
+        const verdict = turns === run.par ? 'Par. Clean.' : turns < run.par ? 'Under par?!' : `${turns - run.par} over par.`;
         P.message(`Through all ${run.walls.length} walls in ${turns} turns. ${verdict}`, 'ok');
-        runs++;
-        if (turns <= run.par + 1) { if (wallsN < 4) wallsN++; else cubes = Math.min(6, cubes + 1); }
-        P.post([{ label: 'Next run ↵', primary: true, onClick: () => { run = makeRun(cubes, wallsN, mulberry32(Date.now())); build(); } }]);
+        status();
+        P.post([{ label: 'Next run ↵', primary: true, onClick: newRun }]);
         return;
       }
-      H.set('wall', `${wallIdx + 1}/${run.walls.length}`);
+      status();
       await look(wallIdx, true);
       P.message('Through. Next wall.', 'ok');
     } else {
@@ -193,12 +205,15 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
       void pulseMats(stage.ticker, [piece.mats.base, piece.mats.marker], COLOR_BAD);
       const back = front.clone().setZ(restZ(wallIdx));
       await stage.tween(380, (t) => piece.group.position.lerpVectors(front, back, easeOut(t)));
+      if (!wallMissed) { wallMissed = true; game.miss(); }
+      if (game.over) { game.showOver(newRun); return; }
       P.message(`Bonk. The silhouette doesn't fit the opening. It keeps this orientation — plan from here.`, 'bad');
     }
     Q.reset();
     Q.enabled = true;
   }
 
+  game.onModeChange = newRun;
   build();
   stage.onResize = () => look(Math.min(wallIdx, run.walls.length - 1));
   if (import.meta.env.DEV) Object.assign(window, { lab: { get run() { return run; }, get cells() { return cells; }, passes, MOVES, rotateCell, normalize } });
@@ -208,7 +223,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
 }
 
 export const smuggler: SketchDef = {
-  id: 'smuggler', title: 'Shape Smuggler', status: 'playable', skill: 'rotation planning',
-  tagline: 'One piece, several walls, each with a different opening. Fewest turns wins — and every turn you make carries into the next wall.',
+  id: 'smuggle', title: 'Smuggle', status: 'playable', skill: 'rotation planning', icon: '🧱',
+  tagline: 'One piece, three walls, each with a different opening. Every turn you make carries into the next wall.',
   mount,
 };

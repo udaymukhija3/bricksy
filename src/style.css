@@ -181,3 +181,17 @@ button, .chip, .grid .cell, .choice { touch-action: manipulation; -webkit-tap-hi
   .brand .sub { display: none; }
 }
 .hud .stat, .hud .pill, .hud label { white-space: nowrap; }
+
+/* ---- run loop (daily / endless) ---- */
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.seg-btn { border: 0; border-radius: 0; padding: 4px 10px; min-height: 0; font-size: 12px; text-transform: capitalize; background: transparent; color: var(--muted); }
+.seg-btn.on { background: var(--accent); color: #1a1200; font-weight: 700; }
+.stat.lives { letter-spacing: 2px; font-size: 15px; }
+.stat.lives .lost { opacity: 0.25; }
+.overlay .results { font-size: 22px; letter-spacing: 2px; margin: 6px 0 10px; }
+.overlay .row { display: flex; gap: 8px; justify-content: center; }
+.hub { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.hub a.card { display: flex; gap: 14px; align-items: center; }
+.hub .icon-big { font-size: 34px; line-height: 1; }
+.hub .card.flag { grid-column: 1 / -1; background: linear-gradient(135deg, #1c1f27, #262a35); border-color: #3a4052; }
+@media (pointer: coarse) { .seg-btn { min-height: 32px; } }

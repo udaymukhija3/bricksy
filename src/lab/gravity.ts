@@ -1,9 +1,10 @@
 // Gravity Rooms: a room with loose cubes. The room is about to turn. Which cube ends up in the socket?
 import * as THREE from 'three';
 import { rotateCell, type Cell, type Move, MOVES, moveLabel } from '../polycube';
-import { SketchStage, cubeGroup, voxelMesh, panel, hud, h, mulberry32, pick, sleep, easeIn, cellKey, COLOR_OK, COLOR_BAD, pulseMats, cubeGeo, edgeGeo } from './kit';
+import { SketchStage, cubeGroup, voxelMesh, panel, h, mulberry32, pick, sleep, easeIn, cellKey, COLOR_OK, COLOR_BAD, pulseMats, cubeGeo, edgeGeo } from './kit';
 import type { SketchDef, MountCtx } from './types';
 import { Log } from '../log';
+import { Run } from '../run';
 
 const COLORS = [0xe5484d, 0x46a758, 0x3e8ff5, 0xf5a524, 0xb56be0, 0x2ec4b6];
 
@@ -56,8 +57,9 @@ function makeRoom(n: number, looseN: number, fixedN: number, rng: () => number):
 function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   const log = new Log();
   const stage = new SketchStage(stageEl, { gizmo: true, ground: null });
-  const H = hud(hudEl, ['right', 'seen']);
-  let n = 4, looseN = 3, fixedN = 4, right = 0, seen = 0;
+  const run = new Run({ id: 'tilt', name: 'Tilt', icon: '🎲', dailyRounds: 8 }, hudEl, stageEl);
+  /** Difficulty by level: more loose cubes, more ledges, then a bigger room. */
+  const setup = (level: number) => ({ n: level >= 8 ? 5 : 4, looseN: Math.min(5, 3 + Math.floor(level / 3)), fixedN: (level >= 8 ? 7 : 4) + Math.floor(level / 4) });
   let room!: Room;
   const world = new THREE.Group();
   stage.scene.add(world);
@@ -66,11 +68,18 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   const commitB = h('button.primary', { onclick: commit, title: 'Enter' }, 'Turn the room ↵') as HTMLButtonElement;
   panelEl.append(h('p', { style: { margin: 0, color: 'var(--muted)' } }, 'Click the cube you think lands in the orange socket after the turn.'), h('div#actions', {}, commitB));
   const P = panel(panelEl);
-  const off = () => (n - 1) / 2;
-  const frame = () => stage.place(35, 24, stage.fit((n * Math.sqrt(3)) / 2 + 0.4), [0, -0.3, 0]);
+  const off = () => (room.n - 1) / 2;
+  const frame = () => stage.place(35, 24, stage.fit((room.n * Math.sqrt(3)) / 2 + 0.4), [0, -0.3, 0]);
   stage.onResize = frame;
 
+  function newRoom() {
+    const d = setup(run.level);
+    room = makeRoom(d.n, d.looseN, d.fixedN, mulberry32(run.nextSeed()));
+    build();
+  }
+
   function build() {
+    const n = room.n;
     world.clear();
     world.quaternion.identity();
     const c = off();
@@ -93,9 +102,8 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     commitB.disabled = false;
     P.message('');
     P.clearPost();
-    hintEl.textContent = `The room will turn ${moveLabel(room.move)} (see gizmo). ${looseN} loose cubes.`;
+    hintEl.textContent = `The room will turn ${moveLabel(room.move)} (see gizmo). ${room.loose.length} loose cubes.`;
     stage.highlightAxis(room.move.axis, room.move.dir);
-    H.set('right', right); H.set('seen', seen);
     log.push('present', { sketch: 'gravity', room: { n: room.n, fixed: room.fixed, loose: room.loose, move: moveLabel(room.move), socket: room.socket } });
   }
 
@@ -112,9 +120,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   async function commit() {
     if (picked < 0) { P.message('Pick a cube first.', 'bad'); return; }
     commitB.disabled = true;
-    seen++;
     const ok = picked === room.answer;
-    if (ok) right++;
     log.push('result', { sketch: 'gravity', picked, answer: room.answer, ok });
     await stage.spin(world, room.move, 900);
     await sleep(150);
@@ -126,14 +132,14 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     const mat = loose.cubes[room.answer].material as THREE.MeshStandardMaterial;
     void pulseMats(stage.ticker, [mat], ok ? COLOR_OK : COLOR_BAD);
     stage.highlightAxis(null);
+    ok ? run.hit() : run.miss();
     P.message(ok ? `Cube ${picked + 1} lands in the socket.` : `Cube ${room.answer + 1} lands in the socket, not ${picked + 1}.`, ok ? 'ok' : 'bad');
-    H.set('right', right); H.set('seen', seen);
-    if (ok && right % 3 === 0) { if (looseN < 5) looseN++; else if (n < 5) { n = 5; fixedN = 7; } }
-    P.post([{ label: 'Next ↵', primary: true, onClick: () => { room = makeRoom(n, looseN, fixedN, mulberry32(Date.now())); build(); } }]);
+    if (run.over) run.showOver(newRoom);
+    else P.post([{ label: 'Next ↵', primary: true, onClick: newRoom }]);
   }
 
-  room = makeRoom(n, looseN, fixedN, mulberry32(Date.now()));
-  build();
+  run.onModeChange = newRoom;
+  newRoom();
   const onKey = (e: KeyboardEvent) => {
     if (e.key === 'Enter') { if (!commitB.disabled) commit(); else (panelEl.querySelector('#post:not([hidden]) button.primary') as HTMLButtonElement | null)?.click(); }
     else if (/^[1-6]$/.test(e.key) && !commitB.disabled && Number(e.key) <= loose.cubes.length) { picked = Number(e.key) - 1; loose.cubes.forEach((cube, i) => { const m = cube.material as THREE.MeshStandardMaterial; m.emissive.set(i === picked ? 0xffffff : 0); m.emissiveIntensity = 0.35; }); P.message(`Cube ${picked + 1} picked.`); }
@@ -143,7 +149,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
 }
 
 export const gravity: SketchDef = {
-  id: 'gravity', title: 'Gravity Rooms', status: 'playable', skill: 'predicting motion under a rotated frame',
-  tagline: 'A room with loose cubes is about to turn. Gravity stays down — the room doesn\'t. Pick the cube that ends in the socket, then turn it.',
+  id: 'tilt', title: 'Tilt', status: 'playable', skill: 'predicting motion under a rotated frame', icon: '🎲',
+  tagline: 'The room is about to turn. Gravity stays down — the room doesn\'t. Pick the cube that ends in the socket, then turn it.',
   mount,
 };
