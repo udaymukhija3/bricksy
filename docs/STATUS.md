@@ -10,7 +10,7 @@ with controls, *why this game* and the player's learning curve · phone layout �
 | --- | --- | --- | --- | --- | --- |
 | 🚚 Tight Fit | saga + today's job (stars, share, day streak) | 10 jobs, boss chains 4 stages; daily job varies chain | retry within 3 tries; job restarts | map, daily job, load stage | no endless; corner stage never scales |
 | 📦 Pack | ✓ (moved onto the run loop today) | 6 stages by score; daily climbs 2× | lift out & retry, replay, skip | full daily played, lock, resume | opaque molds only at score 16 |
-| 🧱 Smuggle | ✓ (+ daily lock fixed today) | 5→6 cubes, 4th wall at L6 | *Show a fit* (BFS) | bonk → fit → through | no 5th wall; par not shown per wall |
+| 🧱 Smuggle | ✓ (+ daily lock fixed today; a run now survives a mid-run reload, bonk included) | 5→6 cubes, 4th wall at L6 | *Show a fit* (BFS) | bonk → fit → through; pass → reload → resume; bonk → reload → fit | no 5th wall; par not shown per wall |
 | 🪞 Mirror | ✓ | 5→8 cubes; three-way answer from L2 | uncovered cells shown red; fit over rotations + translations | rot/other rounds played | nothing beyond three kinds |
 | 🧩 Assemble | ✓ | 2→4 parts, scramble 1→3 | *Show solution* fly-in | full round hit, pick cycling, grid anchor on a phone | anchors can be set by tapping a layer grid or the ghost |
 | 🔪 Cut | ✓ (case picker pure since today) | solids/cuts to L6, six options at L8 | cuts the solid, marks the outline | L14 loads | plateau after L8 |
@@ -28,7 +28,13 @@ with controls, *why this game* and the player's learning curve · phone layout �
 Cross-cutting, shipped today: run loop with reload-safe dailies, lock + result card (streaks,
 histogram, countdown, next-daily handoff), hub scorecard, `#N` share text, Open Graph tags,
 stage banner for the verdict, help panels with learning curves, log capped/debounced,
-generator sweep test, `?level=N` dev override.
+generator sweep test, `?level=N` dev override. Later the same day (product layer, second
+session): learning curves fixed for Cut, Tilt and Smuggle (they log under their old sketch
+names; `progress.ts` reads both, and a result marked `firstTry: false` never counts); a daily
+is pinned to the date the page opened (no key/seed switch at midnight); Cut's option shuffle is
+engine-independent (Safari and V8 no longer see different distractors for one seed); the
+service worker prompts a reload when it has fetched a newer page than the one on screen; every
+page has an error guard (persistent toast + `error` event in the log).
 
 Cross-cutting, still open: **deploy is blocked by the GitHub Actions billing lock** (live site
 is the Sept 13 build); no server, so streaks and stats are per device; no accounts; no
