@@ -6,6 +6,7 @@ import { h, mulberry32 } from '../lab/kit.ts';
 import { Sfx } from '../sfx.ts';
 import { Log } from '../log.ts';
 import { makeItem, type Body } from './model.ts';
+import type { Cell } from '../polycube.ts';
 import { STAGES } from './stages.ts';
 import { EPISODE, JOBS, STAGE_NAMES, dailyJob, shiftJob, type JobDef } from './jobs.ts';
 import { today, dayNumber, dailyRecord, statsOf } from '../run.ts';
@@ -134,8 +135,11 @@ async function playJob(job: JobDef) {
     stageStat.innerHTML = `stage <b>${i + 1}/${job.stages.length}</b> · ${STAGE_NAMES[st.type]}`;
     paint();
     const rng = seeded(jobSeed(job), 'stage', i);
+    // The corner scales by company: two other bodies, a third on the boss job and deep into a shift.
+    const crowd = (job.boss ? 1 : 0) + (job.shift != null && job.shift >= 3 ? 1 : 0);
     const others: Body[] = st.type === 'corner'
-      ? [{ cells: makeItem(4, seeded(jobSeed(job), 'other', 1)), name: 'box of books', color: 0x6b8fd6 }, { cells: [[0, 0, 0], [1, 0, 0]], name: 'crate', color: 0x46a758 }]
+      ? [{ cells: makeItem(4, seeded(jobSeed(job), 'other', 1)), name: 'box of books', color: 0x6b8fd6 }, { cells: [[0, 0, 0], [1, 0, 0]], name: 'crate', color: 0x46a758 },
+        ...(crowd ? [{ cells: [[0, 0, 0], [1, 0, 0], [0, 1, 0]] as Cell[], name: 'lamp', color: 0xb56be0 }] : [])]
       : [];
     const res = await STAGES[st.type]({
       stageEl, panelEl, hintEl: hint, item, itemName: job.item, itemColor: job.color, distance: st.d, rng, others, sfx,

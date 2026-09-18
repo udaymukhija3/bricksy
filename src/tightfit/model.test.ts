@@ -45,4 +45,8 @@ for (let s = 1; s <= 60; s++) {
 check(`${loads} loads: solution fits, no single-turn deviation fits (${loadBad} bad)`, loadBad === 0);
 check(`${doors} doorways: impassable now, passable within 1–3 turns (${doorBad} bad)`, doorBad === 0);
 check(`${corners} corners: exactly the answer body reaches the socket, socket empty before (${cornerBad} bad)`, cornerBad === 0);
+// A crowded corner (item + three other bodies) must still generate.
+let crowded = 0;
+for (let s = 1; s <= 60; s++) { const rng = mulberry32(s); try { makeCorner(makeItem(5, rng), [{ cells: makeItem(4, rng), name: 'a', color: 0 }, { cells: [[0, 0, 0], [1, 0, 0]], name: 'b', color: 0 }, { cells: [[0, 0, 0], [1, 0, 0], [0, 1, 0]], name: 'c', color: 0 }], rng); } catch { crowded++; } }
+check(`60 corners with three other bodies generate (${crowded} failed)`, crowded === 0);
 if (failures) throw new Error(`${failures} check(s) failed`);
