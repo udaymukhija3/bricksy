@@ -7,7 +7,7 @@ import { SketchStage, voxelMesh, panel, h, mulberry32, sleep, easeInOut, easeOut
 import type { SketchDef, MountCtx } from './types.ts';
 import { Log } from '../log.ts';
 import { Run } from '../run.ts';
-import { generate, walk, good, turnTo, spec, key, HEAD_VEC, type Maze, type P, type Heading, type Rel } from './wayfind-model.ts';
+import { generate, walk, good, neighbours, turnTo, spec, key, HEAD_VEC, type Maze, type P, type Heading, type Rel } from './wayfind-model.ts';
 
 const RELS: Rel[] = ['left', 'forward', 'right', 'back'];
 const GLYPH: Record<Rel, string> = { left: '←', forward: '↑', right: '→', back: '↓' };
@@ -191,8 +191,19 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     giveUpB.disabled = true;
     log.push('result', { sketch: 'wayfind', ok, decisions, wrong, par: m.par, why });
     ok ? run.hit() : run.miss();
-    P.message(ok ? (wrong ? `Goal with ${wrong} wrong turn forgiven in a maze this size (${decisions} decisions, par ${m.par}).` : `Goal, no wrong turns (${decisions} decisions, par ${m.par}).`) : `${why} ${wrong} wrong turn${wrong === 1 ? '' : 's'} in ${decisions} decisions (par ${m.par}). Your trail is on the map.`, ok ? 'ok' : 'bad');
-    // Rise back to the map with the trail drawn: reality's account of the walk.
+    P.message(ok ? (wrong ? `Goal with ${wrong} wrong turn forgiven in a maze this size (${decisions} decisions, par ${m.par}).` : `Goal, no wrong turns (${decisions} decisions, par ${m.par}).`) : `${why} ${wrong} wrong turn${wrong === 1 ? '' : 's'} in ${decisions} decisions (par ${m.par}). Your trail is on the map; the green dots are a shortest route.`, ok ? 'ok' : 'bad');
+    // Rise back to the map with the trail drawn — and, under it, one shortest route in green.
+    if (!ok) {
+      const open = new Set(m.open);
+      let c: P = m.start;
+      while (key(c) !== key(m.goal)) {
+        const n = neighbours(open, c).find((x) => good(m, c, x))!;
+        const t = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.03, 0.3), new THREE.MeshBasicMaterial({ color: 0x46a758, transparent: true, opacity: 0.9 }));
+        t.position.set(n[0], -0.47, n[1]);
+        trail.add(t);
+        c = n;
+      }
+    }
     trail.visible = true;
     startMarker.visible = true;
     const p0 = stage.camera.position.clone(), q0 = stage.camera.quaternion.clone(), f0 = stage.camera.fov;
