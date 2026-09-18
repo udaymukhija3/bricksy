@@ -22,6 +22,10 @@ export const today = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth
 /** Daily #1 was 2026-09-18; the number is the same for everyone, like a crossword's. */
 export const EPOCH = Date.UTC(2026, 8, 18);
 export const dayNumber = (d = new Date()) => Math.floor((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - EPOCH) / 86400000) + 1;
+/** Local date string of daily #n. */
+export const dateOfDay = (n: number, now = new Date()) => { const d = new Date(now); d.setDate(d.getDate() - (dayNumber(now) - n)); return today(d); };
+/** `?day=N` replays an earlier daily (the archive). Only past days; today and the future are ignored. */
+export const ARCHIVE_DAY = (() => { if (typeof location === 'undefined') return null; const n = Number(new URLSearchParams(location.search).get('day')); return Number.isInteger(n) && n >= 1 && n < dayNumber() ? n : null; })();
 /** Dev only: `?level=N` pins the difficulty so high levels can be checked without earning them. */
 const DEV_LEVEL = typeof location !== 'undefined' && import.meta.env?.DEV && new URLSearchParams(location.search).has('level') ? Number(new URLSearchParams(location.search).get('level')) : null;
 const msToMidnight = () => { const n = new Date(); const m = new Date(n); m.setHours(24, 0, 0, 0); return m.getTime() - n.getTime(); };
@@ -59,9 +63,10 @@ export class Run {
   best: number;
   bestStreak: number;
   readonly sfx = new Sfx();
-  /** The daily this page is playing: pinned when the page opens, so a daily started before midnight keeps its date, its seeds and its record. */
+  /** The daily this page is playing: pinned when the page opens, so a daily started before midnight keeps its date, its seeds and its record. An archived day via ?day=N. */
   readonly date: string;
   readonly day: number;
+  get archive() { return ARCHIVE_DAY != null; }
   private hudEls: Record<string, HTMLElement> = {};
   private hudRoot: HTMLElement;
   private overlay: HTMLElement;
@@ -76,8 +81,8 @@ export class Run {
     this.opts = opts;
     this.lives = opts.lives ?? 3;
     const now = new Date();
-    this.date = today(now);
-    this.day = dayNumber(now);
+    this.date = ARCHIVE_DAY ? dateOfDay(ARCHIVE_DAY, now) : today(now);
+    this.day = ARCHIVE_DAY ?? dayNumber(now);
     this.mode = (localStorage.getItem(`bricksy.${opts.id}.mode`) as Mode) || 'daily';
     this.best = Number(localStorage.getItem(`bricksy.${opts.id}.best`)) || 0;
     this.bestStreak = Number(localStorage.getItem(`bricksy.${opts.id}.bestStreak`)) || 0;
@@ -178,7 +183,7 @@ export class Run {
     if (this.mode !== 'daily') return;
     const done = this.round >= this.dailyRounds;
     write(`bricksy.${this.opts.id}.daily.${this.date}`, { results: this.results, done } satisfies DailyRecord);
-    if (done) this.recordDailyStats();
+    if (done && !this.archive) this.recordDailyStats(); // archive plays count for nothing but themselves
   }
   private recordDailyStats() {
     const st = this.stats;
@@ -212,7 +217,7 @@ export class Run {
     }
     for (const b of this.hudEls.mode.querySelectorAll('.seg-btn')) b.classList.toggle('on', (b as HTMLElement).dataset.mode === this.mode);
     if (this.mode === 'daily') {
-      this.hudEls.a.innerHTML = `#${this.day} · round <b>${Math.min(this.round + 1, this.dailyRounds)}/${this.dailyRounds}</b>`;
+      this.hudEls.a.innerHTML = `#${this.day}${this.archive ? ' <span class="muted">(archive)</span>' : ''} · round <b>${Math.min(this.round + 1, this.dailyRounds)}/${this.dailyRounds}</b>`;
       this.hudEls.b.innerHTML = this.results.map((r) => (r ? '🟩' : '🟥')).join('') || '<b>—</b>';
       this.hudEls.b.className = 'stat';
       this.hudEls.c.innerHTML = `streak <b>${this.streak}</b>`;
@@ -232,7 +237,7 @@ export class Run {
     const head = this.mode === 'daily'
       ? `${this.opts.icon ?? ''} ${this.opts.name} #${this.day} · ${this.score}/${this.dailyRounds}`
       : `${this.opts.icon ?? ''} ${this.opts.name} · endless · ${this.score}`;
-    return `${head.trim()}\n${grid}\n${location.origin}${location.pathname}`;
+    return `${head.trim()}\n${grid}\n${location.origin}${location.pathname}${this.mode === 'daily' && this.archive ? `?day=${this.day}` : ''}`;
   }
 
   async share() {
@@ -255,10 +260,17 @@ export class Run {
     const daily = this.mode === 'daily';
     if (daily) this.saveDaily();
     const st = this.stats;
-    const title = daily ? `${this.score}/${this.dailyRounds} today` : `Run over · ${this.score}`;
+    const title = daily ? (this.archive ? `${this.score}/${this.dailyRounds} on #${this.day}` : `${this.score}/${this.dailyRounds} today`) : `Run over · ${this.score}`;
     const sub = daily
-      ? `${this.opts.name} #${this.day} · same ${this.dailyRounds} puzzles for everyone. Day streak ${st.dayStreak}${st.bestDayStreak > st.dayStreak ? ` (best ${st.bestDayStreak})` : ''} · ${st.played} played${st.totalRounds ? ` · avg ${(this.dailyRounds * st.totalScore / st.totalRounds).toFixed(1)}/${this.dailyRounds}` : ''}.`
+      ? (this.archive
+        ? `${this.opts.name} #${this.day} from the archive (${this.date}). Archive plays don't count toward streaks.`
+        : `${this.opts.name} #${this.day} · same ${this.dailyRounds} puzzles for everyone. Day streak ${st.dayStreak}${st.bestDayStreak > st.dayStreak ? ` (best ${st.bestDayStreak})` : ''} · ${st.played} played${st.totalRounds ? ` · avg ${(this.dailyRounds * st.totalScore / st.totalRounds).toFixed(1)}/${this.dailyRounds}` : ''}.`)
       : `Best ${this.best} · best streak ${this.bestStreak}`;
+    // The archive: the last five earlier dailies, ticked when already played; from an archived day, a way back to today.
+    const todayN = dayNumber();
+    const earlier = daily && todayN > 1 ? h('p.muted.archive', {},
+      this.archive ? h('a', { href: location.pathname }, 'Today’s daily →') : 'Earlier dailies:',
+      ...Array.from({ length: Math.min(5, todayN - 1) }, (_, i) => todayN - 1 - i).filter((n) => n !== this.day).flatMap((n) => [' ', h('a', { href: `${location.pathname}?day=${n}` }, `#${n}${dailyRecord(this.opts.id, dateOfDay(n))?.done ? ' ✓' : ''}`)])) : null;
     const next = h('p.muted.next');
     // Score distribution over every daily played, today's bar highlighted — the Wordle habit.
     const hist = daily && st.played > 1 ? h('div.hist', {}, ...st.hist.map((n, i) => h('div.bar' + (i === this.score ? '.me' : ''), { title: `${n} day${n === 1 ? '' : 's'} at ${i}/${this.dailyRounds}` },
@@ -271,7 +283,8 @@ export class Run {
       h('p.results', {}, this.results.map((r) => (r ? '🟩' : '🟥')).join('')),
       h('p.muted', {}, sub),
       hist,
-      daily ? next : null,
+      daily && !this.archive ? next : null,
+      earlier,
       h('div.row', {},
         h('button.primary', { onclick: () => this.share() }, 'Share'),
         h('button', { onclick: again2 }, daily ? 'Practice (endless) ↵' : 'Play again ↵'),
@@ -280,7 +293,7 @@ export class Run {
     ));
     // A finished daily hands over to the next game not yet played today. The roster is loaded
     // lazily so this module stays light and free of a cycle with the games.
-    if (daily) void import('./games.ts').then(({ GROUPS }) => {
+    if (daily && !this.archive) void import('./games.ts').then(({ GROUPS }) => {
       const games = GROUPS.flatMap((g) => g.games);
       const left = games.filter((g) => g.id !== this.opts.id && !dailyRecord(g.id)?.done);
       if (!left.length) { more.textContent = `All ${games.length} dailies done today ✓`; return; }
@@ -291,7 +304,7 @@ export class Run {
     });
     this.overlay.hidden = false;
     document.body.setAttribute('data-over', '');
-    if (daily) { tick(); this.countdown = window.setInterval(tick, 1000); }
+    if (daily && !this.archive) { tick(); this.countdown = window.setInterval(tick, 1000); }
     if (daily) this.sfx.levelUp(); else this.sfx.over();
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Enter' && !this.overlay.hidden) { window.removeEventListener('keydown', onKey); again2(); } };
     window.addEventListener('keydown', onKey);
