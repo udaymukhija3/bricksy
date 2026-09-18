@@ -11,7 +11,7 @@ with controls, *why this game* and the player's learning curve · phone layout �
 | 🚚 Tight Fit | saga + today's job (stars, share, day streak) | 10 jobs, boss chains 4 stages; daily job varies chain | retry within 3 tries; job restarts | map, daily job, load stage | no endless; corner stage never scales |
 | 📦 Pack | ✓ (moved onto the run loop today) | 6 stages by score; daily climbs 2× | lift out & retry, replay, skip | full daily played, lock, resume | opaque molds only at score 16 |
 | 🧱 Smuggle | ✓ (+ daily lock fixed today) | 5→6 cubes, 4th wall at L6 | *Show a fit* (BFS) | bonk → fit → through | no 5th wall; par not shown per wall |
-| 🪞 Mirror | ✓ | 5→8 cubes | uncovered cells shown red | L14 loads | binary answer: 50% guess floor; needs a "where does it fail" second question |
+| 🪞 Mirror | ✓ | 5→8 cubes; three-way answer from L2 | uncovered cells shown red; fit over rotations + translations | rot/other rounds played | nothing beyond three kinds |
 | 🧩 Assemble | ✓ | 2→4 parts, scramble 1→3 | *Show solution* fly-in | full round hit, pick cycling | anchor picking on small phones is fiddly; a layer-grid picker would help |
 | 🔪 Cut | ✓ (case picker pure since today) | solids/cuts to L6, six options at L8 | cuts the solid, marks the outline | L14 loads | plateau after L8 |
 | 📐 Fold | ✓ | 1-4-1 nets → all 11; two faces at L6 | folds, tumbles, marks faces | two-face round played | nothing beyond two faces |

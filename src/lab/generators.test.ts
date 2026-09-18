@@ -1,6 +1,6 @@
 // Run with: npm test — every game's round generator, every level, many seeds: a daily must
 // never fail to generate. Sketches import three.js, which loads fine in node without a DOM.
-import { makeTrap, cubesFor as mirrorCubes } from './mirror.ts';
+import { makeTrap, cubesFor as mirrorCubes, kindsFor } from './mirror.ts';
 import { makeTrain, setup as gearsSetup } from './gears.ts';
 import { makeRun, cubesFor as smuggleCubes, wallsFor } from './smuggler.ts';
 import { makeRoom, setup as tiltSetup } from './gravity.ts';
@@ -25,7 +25,7 @@ const SEEDS = 40;
 const seedsFor = (name: string, level: number) => (name === 'mate' && level >= 8) || (name === 'shove' && level >= 6) ? 6 : SEEDS;
 
 const gens: Record<string, (level: number, rng: () => number) => unknown> = {
-  mirror: (l, r) => makeTrap(mirrorCubes(l), r),
+  mirror: (l, r) => { const t = makeTrap(mirrorCubes(l), r, l >= 2 ? ['other'] : kindsFor(l)); if (t.kind === 'other' && (t.b.length !== t.a.length)) throw new Error('bad other'); return t; },
   gears: (l, r) => { const d = gearsSetup(l); return makeTrain(d.count, d.compounds, r); },
   smuggle: (l, r) => makeRun(smuggleCubes(l), wallsFor(l), r),
   tilt: (l, r) => { const d = tiltSetup(l); return makeRoom(d.n, d.looseN, d.fixedN, r); },
