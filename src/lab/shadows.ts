@@ -35,7 +35,9 @@ export function makeCase(dims: Dims, n: number, rng: () => number) {
 
 /** Difficulty by level: more cubes in a 3³ box, then a wider box. */
 export const setup = (level: number): { dims: Dims; n: number } =>
-  level < 6 ? { dims: { w: 3, h: 3, d: 3 }, n: Math.min(8, 5 + Math.floor((level + 1) / 2)) } : { dims: { w: 4, h: 3, d: 4 }, n: Math.min(10, 7 + Math.floor((level - 6) / 2)) };
+  level < 6 ? { dims: { w: 3, h: 3, d: 3 }, n: Math.min(8, 5 + Math.floor((level + 1) / 2)) }
+    : level < 12 ? { dims: { w: 4, h: 3, d: 4 }, n: Math.min(10, 7 + Math.floor((level - 6) / 2)) }
+      : { dims: { w: 4, h: 4, d: 4 }, n: Math.min(13, 10 + Math.floor((level - 12) / 2)) };
 
 function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   const log = new Log();

@@ -162,6 +162,7 @@ export interface SliceCase { solid: Solid; cut: Cut; answer: Section; options: {
 /** A solid, a cut, its true section and three visibly different distractors (other cuts of this solid first, then other solids). */
 export function pickCase(level: number, rng: () => number): SliceCase | null {
   const t = tiers(level);
+  const want = level >= 8 ? 5 : 3; // distractors: five options from level 8
   for (let tries = 0; tries < 200; tries++) {
     const SOLIDS = SOLIDS_ALL();
     const solid = pick(SOLIDS.filter((x) => x.tier <= t.solid), rng);
@@ -175,9 +176,9 @@ export function pickCase(level: number, rng: () => number): SliceCase | null {
     for (const s of pool.sort(() => rng() - 0.5)) {
       if (similar(s, answer) || chosen.some((c) => similar(c, s))) continue;
       chosen.push(s);
-      if (chosen.length === 3) break;
+      if (chosen.length === want) break;
     }
-    if (chosen.length < 3) continue;
+    if (chosen.length < want) continue;
     const all = [answer, ...chosen].map((s, i) => ({ id: String(i), s })).sort(() => rng() - 0.5);
     return { solid, cut, answer, options: all, correctId: all.find((o) => o.s === answer)!.id };
   }

@@ -8,7 +8,7 @@ import { Run } from '../run.ts';
 import { makeStack, type Stack } from './count-model.ts';
 
 /** Difficulty by level: footprint first, then height. */
-const setup = (level: number) => (level < 3 ? { base: 3, maxH: 3 } : level < 6 ? { base: 4, maxH: 3 } : level < 9 ? { base: 4, maxH: 4 } : { base: 5, maxH: 4 });
+export const setup = (level: number) => (level < 3 ? { base: 3, maxH: 3 } : level < 6 ? { base: 4, maxH: 3 } : level < 9 ? { base: 4, maxH: 4 } : level < 14 ? { base: 5, maxH: 4 } : { base: 6, maxH: 4 });
 
 function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   const log = new Log();

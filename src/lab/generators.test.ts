@@ -8,6 +8,7 @@ import { makeCase as shadowsCase, setup as shadowsSetup } from './shadows.ts';
 import { makeCase as flashCase, setup as flashSetup } from './flash.ts';
 import { pickCase } from './slice.ts';
 import { makeStack } from './count-model.ts';
+import { setup as countSetup } from './count.ts';
 import { makeLevel, spec as shoveSpec } from './shove-model.ts';
 import { generate, spec as wayfindSpec } from './wayfind-model.ts';
 import { makePuzzle as assemblePuzzle, spec as assembleSpec } from './assemble-model.ts';
@@ -31,7 +32,7 @@ const gens: Record<string, (level: number, rng: () => number) => unknown> = {
   shadows: (l, r) => { const d = shadowsSetup(l); return shadowsCase(d.dims, d.n, r); },
   flash: (l, r) => { const d = flashSetup(l); return flashCase({ w: 3, h: 3, d: 3 }, d.n, r); },
   cut: (l, r) => { const c = pickCase(l, r); if (!c) throw new Error('no case'); return c; },
-  count: (l, r) => { const base = l < 3 ? 3 : l < 6 ? 4 : l < 9 ? 4 : 5, maxH = l < 3 ? 3 : l < 6 ? 3 : 4; return makeStack(base, maxH, r); },
+  count: (l, r) => { const d = countSetup(l); return makeStack(d.base, d.maxH, r); },
   shove: (l, r) => makeLevel(shoveSpec(l), r),
   wayfind: (l, r) => { const s = wayfindSpec(l); return generate(s.rooms, s.loops, r, s.heading); },
   assemble: (l, r) => assemblePuzzle(assembleSpec(l), r),

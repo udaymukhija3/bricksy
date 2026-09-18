@@ -33,6 +33,8 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   const stage = new SketchStage(stageEl, { ground: -1.6 });
   const run = new Run({ id: 'fold', name: 'Fold', icon: '📐', dailyRounds: 8 }, hudEl, stageEl);
   let net!: Net, asked = 0, answer = 0, picked = -1;
+  // From level 6 a second face is asked too (purple border); both must be right.
+  let asked2 = -1, answer2 = -1, picked2 = -1;
   let faces: THREE.Mesh[] = [];
   let cubeCentre = new THREE.Vector3();
   let pivots: { pivot: THREE.Group; dx: number; dz: number }[] = [];
@@ -58,6 +60,11 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     asked = Math.floor(rng() * 6);
     answer = opposite(net, asked);
     picked = -1;
+    asked2 = -1; answer2 = -1; picked2 = -1;
+    if (run.level >= 6) {
+      do asked2 = Math.floor(rng() * 6); while (asked2 === asked || asked2 === answer);
+      answer2 = opposite(net, asked2);
+    }
     world.clear();
     world.rotation.set(0, 0, 0);
     faces = [];
@@ -65,7 +72,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     // Face groups: root at origin; each child hangs off a pivot at the shared edge of its parent.
     const groups: THREE.Group[] = net.map(() => new THREE.Group());
     for (let i = 0; i < net.length; i++) {
-      const mat = new THREE.MeshStandardMaterial({ map: faceTexture(SYMBOLS[i], COLORS[i], i === asked ? '#f5a524' : null), side: THREE.DoubleSide, roughness: 0.8 });
+      const mat = new THREE.MeshStandardMaterial({ map: faceTexture(SYMBOLS[i], COLORS[i], i === asked ? '#f5a524' : i === asked2 ? '#b56be0' : null), side: THREE.DoubleSide, roughness: 0.8 });
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
       mesh.rotation.x = -Math.PI / 2; // lie flat, symbol up
       mesh.castShadow = mesh.receiveShadow = true;
@@ -91,8 +98,8 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     commitB.disabled = false;
     P.message('');
     P.clearPost();
-    hintEl.textContent = `Which face ends up opposite ${SYMBOLS[asked]}?`;
-    log.push('present', { sketch: 'fold', mode: run.mode, level: run.level, net, asked });
+    hintEl.textContent = asked2 >= 0 ? `Two questions: which face ends opposite ${SYMBOLS[asked]} (orange), and which opposite ${SYMBOLS[asked2]} (purple)? Click in that order.` : `Which face ends up opposite ${SYMBOLS[asked]}?`;
+    log.push('present', { sketch: 'fold', mode: run.mode, level: run.level, net, asked, asked2 });
   }
 
   function setFold(angle: number) {
@@ -107,31 +114,41 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     const hit = stage.pickAt(ev, faces)[0];
     if (!hit) return;
     const i = hit.object.userData.index as number;
-    if (i === asked) { P.message('That is the marked face itself.', 'bad'); return; }
-    if (picked >= 0) setBorder(picked, null);
-    picked = i;
-    setBorder(picked, '#ffffff');
-    P.message(`${SYMBOLS[picked]} picked.`);
+    if (i === asked || i === asked2) { P.message('That is a marked face itself.', 'bad'); return; }
+    if (asked2 < 0) {
+      if (picked >= 0) setBorder(picked, null);
+      picked = i;
+      setBorder(picked, '#ffffff');
+      P.message(`${SYMBOLS[picked]} picked.`);
+      return;
+    }
+    // Two answers, in order; a third click starts over.
+    if (picked >= 0 && picked2 >= 0) { setBorder(picked, null); setBorder(picked2, null); picked = -1; picked2 = -1; }
+    if (picked < 0) { picked = i; setBorder(i, '#ffffff'); }
+    else if (i !== picked) { picked2 = i; setBorder(i, '#e9d5ff'); }
+    P.message(`opposite ${SYMBOLS[asked]}: ${picked >= 0 ? SYMBOLS[picked] : '?'} · opposite ${SYMBOLS[asked2]}: ${picked2 >= 0 ? SYMBOLS[picked2] : '?'}`);
   }
   stage.canvas.addEventListener('click', onClick);
 
   async function commit() {
-    if (picked < 0) { P.message('Pick a face first.', 'bad'); return; }
+    if (picked < 0 || (asked2 >= 0 && picked2 < 0)) { P.message(asked2 >= 0 ? 'Pick both faces first.' : 'Pick a face first.', 'bad'); return; }
     commitB.disabled = true;
-    const ok = picked === answer;
-    log.push('result', { sketch: 'fold', picked, answer, ok });
+    const ok = picked === answer && (asked2 < 0 || picked2 === answer2);
+    log.push('result', { sketch: 'fold', picked, answer, picked2, answer2, ok });
     await stage.tween(1600, (t) => setFold(easeInOut(t) * Math.PI / 2));
     await sleep(200);
     // Bring the cube to the origin so the tumble turns it in place.
     const shift = cubeCentre.clone().negate();
     await stage.tween(400, (t) => world.position.lerpVectors(new THREE.Vector3(), shift, easeInOut(t)));
     setBorder(answer, '#46a758');
-    if (!ok) setBorder(picked, '#e5484d');
+    if (picked !== answer) setBorder(picked, '#e5484d');
+    if (asked2 >= 0) { setBorder(answer2, '#46a758'); if (picked2 !== answer2) setBorder(picked2, '#e5484d'); }
     // Tumble so both the marked face and its opposite come into view.
     const axis = new THREE.Vector3(1, 0.6, 0.3).normalize();
     await stage.tween(3200, (t) => world.quaternion.setFromAxisAngle(axis, easeInOut(t) * Math.PI * 2));
     ok ? run.hit() : run.miss();
-    P.message(ok ? `${SYMBOLS[answer]} is opposite ${SYMBOLS[asked]}.` : `${SYMBOLS[answer]} is opposite ${SYMBOLS[asked]} — ${SYMBOLS[picked]} ended up ${describe(picked)}.`, ok ? 'ok' : 'bad');
+    const second = asked2 >= 0 ? ` ${SYMBOLS[answer2]} is opposite ${SYMBOLS[asked2]}${picked2 === answer2 ? '' : ` — not ${SYMBOLS[picked2]}`}.` : '';
+    P.message(ok ? `${SYMBOLS[answer]} is opposite ${SYMBOLS[asked]}.${second}` : `${SYMBOLS[answer]} is opposite ${SYMBOLS[asked]}${picked === answer ? '' : ` — ${SYMBOLS[picked]} ended up ${describe(picked)}`}.${second}`, ok ? 'ok' : 'bad');
     if (run.over) { run.showOver(build); return; }
     P.post([{ label: 'Next ↵', primary: true, onClick: build }, { label: 'Unfold', onClick: async () => { await stage.tween(900, (t) => world.quaternion.setFromAxisAngle(axis, (1 - easeInOut(t)) * Math.PI * 2)); await stage.tween(400, (t) => world.position.lerpVectors(shift, new THREE.Vector3(), easeInOut(t))); await stage.tween(1200, (t) => setFold((1 - easeInOut(t)) * Math.PI / 2)); } }]);
   }

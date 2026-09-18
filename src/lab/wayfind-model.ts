@@ -126,6 +126,10 @@ export function spec(level: number): Spec {
     { rooms: 6, loops: 2, showMs: 3000, heading: 'random', cut: true },
     { rooms: 6, loops: 3, showMs: 3000, heading: 'random', cut: true },
     { rooms: 7, loops: 3, showMs: 3000, heading: 'random', cut: true },
+    { rooms: 7, loops: 4, showMs: 2500, heading: 'random', cut: true },
+    { rooms: 8, loops: 4, showMs: 3000, heading: 'random', cut: true },
+    { rooms: 8, loops: 5, showMs: 2500, heading: 'random', cut: true },
+    { rooms: 9, loops: 5, showMs: 3000, heading: 'random', cut: true },
   ];
   return t[Math.min(level, t.length - 1)];
 }

@@ -128,24 +128,26 @@ without it?"*
 
 | Game | Skill | Bypass defence |
 | --- | --- | --- |
-| **Smuggle** | rotation planning | orientation carries over between walls, so each wall is planned from where the last left you; par by 0-1 BFS |
-| **Mirror** | rotation vs reflection | only chiral, non-planar shapes (planar shapes flip over in 3D and are never chiral); starts at 5 cubes |
+| **Smuggle** | rotation planning | orientation carries over between walls, so each wall is planned from where the last left you; par by 0-1 BFS; a fourth wall from level 6; after a bonk, *Show a fit* plays the fewest turns through from where you are (the miss stands) |
+| **Mirror** | rotation vs reflection | only chiral, non-planar shapes (planar shapes flip over in 3D and are never chiral); 5 cubes, then 6, 7, 8 |
 | **Assemble** | part–whole composition | every part gets turns and an anchor *before* anything moves; the first collision stops the build, so one part at a time with live feedback is impossible |
-| **Cut** | cross-section prediction | distractors are other real cross-sections, filtered to be visibly different; planes nudged off the lattice |
-| **Fold** | net → solid | all 11 nets, tested |
-| **Shadows** | 2D → 3D reconstruction | your build's silhouettes stay hidden until commit (else it collapses into Picross 3D); the cube count is fixed so the maximal-object trick fails |
-| **Count** | inference behind occlusion | only stacks where every column's top is visible are served, so the count is inferable; ≥2 cubes hidden; visibility is a pure orthographic model so the daily is the same on every screen |
-| **Flash** | spatial memory | cube count, then look time, then a 90° view turn before you build so memory has to survive a rotation |
+| **Cut** | cross-section prediction | distractors are other real cross-sections, filtered to be visibly different; planes nudged off the lattice; six options from level 8 |
+| **Fold** | net → solid | all 11 nets, tested; from level 6 two faces are asked and both must be right |
+| **Shadows** | 2D → 3D reconstruction | your build's silhouettes stay hidden until commit (else it collapses into Picross 3D); the cube count is fixed so the maximal-object trick fails; 3³ → 4×3×4 → 4³ boxes, up to 13 cubes |
+| **Count** | inference behind occlusion | only stacks where every column's top is visible are served, so the count is inferable; ≥2 cubes hidden; visibility is a pure orthographic model so the daily is the same on every screen; footprints 3×3 → 6×6 |
+| **Flash** | spatial memory | cube count (4 → 8), then look time (3 → 1.2 s), then a 90° view turn before you build so memory has to survive a rotation |
 | **Tilt** | motion under a rotated frame | ≥2 cubes move and the socket is empty beforehand |
 | **Gears** | motion through a system | direction, then speed |
 | **Shove** | planning under irreversible moves | plans of 2–4 moves execute without pause and stop at the first blocked move; no undo; budget par + 3; levels are generated from the reachable state space so par is exact; later levels need a turn, then add a push-only box with its own socket (the box must move too, so ordering is part of the plan) |
-| **Wayfind** | perspective taking · mental maps | mazes get loops so wall-following is a bad strategy; a hit is a walk with *no* wrong turn; later the start heading no longer matches the map's up, so two frames must be aligned |
+| **Wayfind** | perspective taking · mental maps | mazes get loops so wall-following is a bad strategy; a hit is a walk with *no* wrong turn; later the start heading no longer matches the map's up, so two frames must be aligned; 4×4 → 9×9 rooms; you always start facing a corridor |
 | **Mate** | multi-step transformation lookahead | attack = the piece's shadow minus its anchor; the post-move shadow is never previewed; puzzles are brute-forced to a unique answer, forced to be a turn, then a turn about a horizontal axis (the shadow changes shape); from level 8 (endless) it is mate in two — no single move mates, the king steps to the square that leaves you the fewest answers, and every reply must have one |
 
 Shared kit: `src/lab/kit.ts` (single-view stage, voxel meshes, turn queue,
 layer builder, grid picker, choices). Pure, tested models sit next to the
 games that use them: `count-model`, `shove-model`, `wayfind-model`,
 `assemble-model`, `mate-model`, and `nets` (cube folding).
+`src/lab/generators.test.ts` runs **every game's round generator at every
+level across many seeds** in node — a daily must never fail to generate.
 
 ## Prototype 0 — match (`/match.html`)
 
