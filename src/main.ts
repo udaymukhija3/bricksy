@@ -66,6 +66,7 @@ $('hud').append(stageName);
   btn.textContent = '?';
   btn.onclick = () => { if (help.hidden) { help.replaceChildren(helpCard(PACK, close)); help.hidden = false; } else close(); };
   $('hud').after(btn);
+  try { if (!localStorage.getItem('bricksy.pack.seen')) { localStorage.setItem('bricksy.pack.seen', '1'); btn.click(); } } catch { /* ignore */ }
 }
 const el = {
   stageName, hint: $('hint'),

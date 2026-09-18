@@ -84,6 +84,7 @@ function renderMap() {
   const closeHelp = () => { help.hidden = true; help.replaceChildren(); };
   const helpB = h('button.icon.help-btn', { title: 'How to play, why this game, your progress', 'aria-label': 'Help', onclick: () => { if (help.hidden) { help.replaceChildren(helpCard(TIGHT_FIT, closeHelp)); help.hidden = false; } else closeHelp(); } }, '?');
   map.append(help);
+  try { if (!localStorage.getItem('bricksy.tightfit.seen')) { localStorage.setItem('bricksy.tightfit.seen', '1'); setTimeout(() => helpB.click(), 0); } } catch { /* ignore */ }
   app.replaceChildren(
     h('header', {}, h('div.brand', {}, h('a', { href: '../' }, '← bricksy'), ' 🚚 Tight Fit ', h('span.sub', {}, `Episode ${EPISODE.id} · ${EPISODE.title}`)), h('div.hudwrap', {}, h('div.hud', {}, h('span.stat', {}, `stars `, h('b', {}, `${total}/${JOBS.length * 3}`))), helpB)),
     h('p#instructions', {}, EPISODE.blurb, ' Each job is a chain: load the van, get it through the door, survive the corner. ', h('b', {}, 'Three stars = every stage first try.')),

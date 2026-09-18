@@ -47,5 +47,8 @@ export function renderFrame(app: HTMLElement, def: SketchDef, backHref: string, 
     ),
   );
   app.replaceChildren(frame);
-  return def.mount!({ stageEl, panelEl, hudEl, hintEl: hint });
+  const teardown = def.mount!({ stageEl, panelEl, hudEl, hintEl: hint });
+  // First visit: open the how-to-play card once, over the round that is already drawn.
+  try { const k = `bricksy.${def.id}.seen`; if (!localStorage.getItem(k)) { localStorage.setItem(k, '1'); openHelp(); } } catch { /* storage may be unavailable */ }
+  return teardown;
 }
