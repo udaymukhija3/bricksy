@@ -8,7 +8,9 @@ import { Run } from '../run.ts';
 
 const COLORS = [0xe5484d, 0x46a758, 0x3e8ff5, 0xf5a524, 0xb56be0, 0x2ec4b6];
 
-interface Room { n: number; fixed: Cell[]; loose: Cell[]; move: Move; final: Cell[]; answer: number; socket: Cell }
+/** `answers[i]` is the loose cube that lands in `sockets[i]`; one socket, two from level 10. */
+interface Room { n: number; fixed: Cell[]; loose: Cell[]; move: Move; final: Cell[]; answers: number[]; sockets: Cell[] }
+const SOCKET_COLORS = [0xf5a524, 0xb56be0];
 
 /** Where each loose cube settles when gravity points along g (room coordinates). */
 function settle(n: number, fixed: Cell[], loose: Cell[], g: Cell): Cell[] {
@@ -29,7 +31,7 @@ function settle(n: number, fixed: Cell[], loose: Cell[], g: Cell): Cell[] {
   return out;
 }
 
-export function makeRoom(n: number, looseN: number, fixedN: number, rng: () => number): Room {
+export function makeRoom(n: number, looseN: number, fixedN: number, rng: () => number, socketsN = 1): Room {
   for (let tries = 0; tries < 500; tries++) {
     const taken = new Set<string>();
     const rnd = (): Cell => [Math.floor(rng() * n), Math.floor(rng() * n), Math.floor(rng() * n)];
@@ -45,17 +47,18 @@ export function makeRoom(n: number, looseN: number, fixedN: number, rng: () => n
     const final = settle(n, fixed, loose, g);
     const moved = final.filter((c, i) => cellKey(c) !== cellKey(loose[i])).length;
     if (moved < 2) continue;
-    const answer = Math.floor(rng() * looseN);
-    if (cellKey(final[answer]) === cellKey(loose[answer])) continue;
-    // Socket must not be where any cube already sits.
-    if (loose.some((c) => cellKey(c) === cellKey(final[answer]))) continue;
-    return { n, fixed, loose, move, final, answer, socket: final[answer] };
+    // Sockets: distinct cubes that move, landing where no cube sits now.
+    const movers = loose.map((_, i) => i).filter((i) => cellKey(final[i]) !== cellKey(loose[i]) && !loose.some((c) => cellKey(c) === cellKey(final[i])));
+    if (movers.length < socketsN) continue;
+    const answers: number[] = [];
+    while (answers.length < socketsN) { const a = pick(movers, rng); if (!answers.includes(a)) answers.push(a); }
+    return { n, fixed, loose, move, final, answers, sockets: answers.map((a) => final[a]) };
   }
   throw new Error('no room');
 }
 
 /** Difficulty by level: more loose cubes, more ledges, then a bigger room. */
-export const setup = (level: number) => ({ n: level >= 8 ? 5 : 4, looseN: Math.min(5, 3 + Math.floor(level / 3)), fixedN: (level >= 8 ? 7 : 4) + Math.floor(level / 4) });
+export const setup = (level: number) => ({ n: level >= 14 ? 6 : level >= 8 ? 5 : 4, looseN: Math.min(level >= 14 ? 6 : 5, 3 + Math.floor(level / 3)), fixedN: (level >= 14 ? 10 : level >= 8 ? 7 : 4) + Math.floor(level / 4), sockets: level >= 10 ? 2 : 1 });
 
 function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   const log = new Log();
@@ -65,9 +68,10 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   const world = new THREE.Group();
   stage.scene.add(world);
   let loose!: ReturnType<typeof cubeGroup>;
-  let picked = -1;
+  let picks: number[] = [];
   const commitB = h('button.primary', { onclick: commit, title: 'Enter' }, 'Turn the room ↵') as HTMLButtonElement;
-  panelEl.append(h('p', { style: { margin: 0, color: 'var(--muted)' } }, 'Click the cube you think lands in the orange socket after the turn.'), h('div#actions', {}, commitB));
+  const instr = h('p', { style: { margin: 0, color: 'var(--muted)' } }, 'Click the cube you think lands in the orange socket after the turn.');
+  panelEl.append(instr, h('div#actions', {}, commitB));
   const P = panel(panelEl);
   const off = () => (room.n - 1) / 2;
   const frame = () => stage.place(35, 24, stage.fit((room.n * Math.sqrt(3)) / 2 + 0.4), [0, -0.3, 0]);
@@ -75,7 +79,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
 
   function newRoom() {
     const d = setup(run.level);
-    room = makeRoom(d.n, d.looseN, d.fixedN, mulberry32(run.nextSeed()));
+    room = makeRoom(d.n, d.looseN, d.fixedN, mulberry32(run.nextSeed()), d.sockets);
     build();
   }
 
@@ -94,35 +98,43 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     world.add(fixed.group);
     loose = cubeGroup(room.loose.map(([x, y, z]) => [x - c, y - c, z - c] as Cell), { colors: COLORS });
     world.add(loose.group);
-    const socket = new THREE.Mesh(cubeGeo, new THREE.MeshBasicMaterial({ color: 0xf5a524, transparent: true, opacity: 0.18, depthWrite: false }));
-    socket.position.set(room.socket[0] - c, room.socket[1] - c, room.socket[2] - c);
-    socket.add(new THREE.LineSegments(edgeGeo, new THREE.LineBasicMaterial({ color: 0xf5a524 })));
-    world.add(socket);
+    room.sockets.forEach((sc, i) => {
+      const socket = new THREE.Mesh(cubeGeo, new THREE.MeshBasicMaterial({ color: SOCKET_COLORS[i], transparent: true, opacity: 0.18, depthWrite: false }));
+      socket.position.set(sc[0] - c, sc[1] - c, sc[2] - c);
+      socket.add(new THREE.LineSegments(edgeGeo, new THREE.LineBasicMaterial({ color: SOCKET_COLORS[i] })));
+      world.add(socket);
+    });
     frame();
-    picked = -1;
+    picks = [];
+    instr.textContent = room.sockets.length === 2 ? 'Two sockets: click the cube that lands in the orange one, then the cube that lands in the purple one.' : 'Click the cube you think lands in the orange socket after the turn.';
     commitB.disabled = false;
     P.message('');
     P.clearPost();
     hintEl.textContent = `The room will turn ${moveLabel(room.move)} (see gizmo). ${room.loose.length} loose cubes.`;
     stage.highlightAxis(room.move.axis, room.move.dir);
-    log.push('present', { sketch: 'gravity', mode: run.mode, level: run.level, room: { n: room.n, fixed: room.fixed, loose: room.loose, move: moveLabel(room.move), socket: room.socket } });
+    log.push('present', { sketch: 'gravity', mode: run.mode, level: run.level, room: { n: room.n, fixed: room.fixed, loose: room.loose, move: moveLabel(room.move), sockets: room.sockets } });
   }
 
+  /** Picks fill the sockets in order; picking again after both are set starts over. */
+  function pickCube(i: number) {
+    if (picks.length >= room.sockets.length) picks = [];
+    if (!picks.includes(i)) picks.push(i);
+    loose.cubes.forEach((cube, j) => { const m = cube.material as THREE.MeshStandardMaterial; const k = picks.indexOf(j); m.emissive.set(k < 0 ? 0x000000 : SOCKET_COLORS[k]); m.emissiveIntensity = 0.5; });
+    P.message(room.sockets.length === 2 ? `orange socket: ${picks[0] != null ? `cube ${picks[0] + 1}` : '?'} · purple socket: ${picks[1] != null ? `cube ${picks[1] + 1}` : '?'}` : `Cube ${i + 1} picked.`);
+  }
   function onClick(ev: MouseEvent) {
     if (commitB.disabled) return;
     const hit = stage.pickAt(ev, loose.cubes)[0];
     if (!hit) return;
-    picked = hit.object.userData.index as number;
-    loose.cubes.forEach((cube, i) => { (cube.material as THREE.MeshStandardMaterial).emissive.set(i === picked ? 0xffffff : 0x000000); (cube.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.35; });
-    P.message(`Cube ${picked + 1} picked.`);
+    pickCube(hit.object.userData.index as number);
   }
   stage.canvas.addEventListener('click', onClick);
 
   async function commit() {
-    if (picked < 0) { P.message('Pick a cube first.', 'bad'); return; }
+    if (picks.length < room.sockets.length) { P.message(room.sockets.length === 2 ? 'Pick a cube for each socket first.' : 'Pick a cube first.', 'bad'); return; }
     commitB.disabled = true;
-    const ok = picked === room.answer;
-    log.push('result', { sketch: 'gravity', picked, answer: room.answer, ok });
+    const ok = room.answers.every((a, i) => picks[i] === a);
+    log.push('result', { sketch: 'gravity', picks, answers: room.answers, ok });
     await stage.spin(world, room.move, 900);
     await sleep(150);
     // Cubes fall in room coordinates; the room group's rotation carries them into world space.
@@ -130,11 +142,12 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     const from = loose.cubes.map((m) => m.position.clone());
     const to = room.final.map(([x, y, z]) => new THREE.Vector3(x - c, y - c, z - c));
     await stage.tween(700, (t) => loose.cubes.forEach((m, i) => m.position.lerpVectors(from[i], to[i], easeIn(t))));
-    const mat = loose.cubes[room.answer].material as THREE.MeshStandardMaterial;
-    void pulseMats(stage.ticker, [mat], ok ? COLOR_OK : COLOR_BAD);
+    void pulseMats(stage.ticker, room.answers.map((a) => loose.cubes[a].material as THREE.MeshStandardMaterial), ok ? COLOR_OK : COLOR_BAD);
     stage.highlightAxis(null);
     ok ? run.hit() : run.miss();
-    P.message(ok ? `Cube ${picked + 1} lands in the socket.` : `Cube ${room.answer + 1} lands in the socket, not ${picked + 1}.`, ok ? 'ok' : 'bad');
+    const names = ['orange', 'purple'];
+    const truth = room.answers.map((a, i) => `cube ${a + 1} lands in the ${names[i]} socket`).join(', ');
+    P.message(ok ? `Right — ${truth}.` : `${truth[0].toUpperCase() + truth.slice(1)} — you said ${picks.map((p) => `cube ${p + 1}`).join(', ')}.`, ok ? 'ok' : 'bad');
     if (run.over) run.showOver(newRoom);
     else P.post([{ label: 'Next ↵', primary: true, onClick: newRoom }]);
   }
@@ -142,7 +155,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   run.begin(newRoom);
   const onKey = (e: KeyboardEvent) => {
     if (e.key === 'Enter') { if (!commitB.disabled) commit(); else (panelEl.querySelector('#post:not([hidden]) button.primary') as HTMLButtonElement | null)?.click(); }
-    else if (/^[1-6]$/.test(e.key) && !commitB.disabled && Number(e.key) <= loose.cubes.length) { picked = Number(e.key) - 1; loose.cubes.forEach((cube, i) => { const m = cube.material as THREE.MeshStandardMaterial; m.emissive.set(i === picked ? 0xffffff : 0); m.emissiveIntensity = 0.35; }); P.message(`Cube ${picked + 1} picked.`); }
+    else if (/^[1-6]$/.test(e.key) && !commitB.disabled && Number(e.key) <= loose.cubes.length) pickCube(Number(e.key) - 1);
   };
   window.addEventListener('keydown', onKey);
   return () => { window.removeEventListener('keydown', onKey); stage.canvas.removeEventListener('click', onClick); stage.dispose(); };

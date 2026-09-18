@@ -87,7 +87,7 @@ export function makeTrain(count: number, compounds: number, rng: () => number) {
 }
 
 /** Difficulty by level: more gears, then speed is asked, then compound gears (two wheels on one axle). */
-export const setup = (level: number) => ({ count: Math.min(7, 4 + Math.floor(level / 2)), askSpeed: level >= 3, compounds: level >= 8 ? 2 : level >= 5 ? 1 : 0 });
+export const setup = (level: number) => ({ count: Math.min(9, 4 + Math.floor(level / 2)), askSpeed: level >= 3, compounds: level >= 12 ? 3 : level >= 8 ? 2 : level >= 5 ? 1 : 0 });
 
 function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   const log = new Log();

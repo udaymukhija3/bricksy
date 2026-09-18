@@ -28,7 +28,7 @@ const gens: Record<string, (level: number, rng: () => number) => unknown> = {
   mirror: (l, r) => { const t = makeTrap(mirrorCubes(l), r, l >= 2 ? ['other'] : kindsFor(l)); if (t.kind === 'other' && (t.b.length !== t.a.length)) throw new Error('bad other'); return t; },
   gears: (l, r) => { const d = gearsSetup(l); return makeTrain(d.count, d.compounds, r); },
   smuggle: (l, r) => makeRun(smuggleCubes(l), wallsFor(l), r),
-  tilt: (l, r) => { const d = tiltSetup(l); return makeRoom(d.n, d.looseN, d.fixedN, r); },
+  tilt: (l, r) => { const d = tiltSetup(l); return makeRoom(d.n, d.looseN, d.fixedN, r, d.sockets); },
   shadows: (l, r) => { const d = shadowsSetup(l); return shadowsCase(d.dims, d.n, r); },
   flash: (l, r) => { const d = flashSetup(l); return flashCase({ w: 3, h: 3, d: 3 }, d.n, r); },
   cut: (l, r) => { const c = pickCase(l, r); if (!c) throw new Error('no case'); return c; },
