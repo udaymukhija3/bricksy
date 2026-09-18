@@ -8,6 +8,8 @@ export interface Progress { levels: LevelStat[]; n: number; hits: number; days: 
 const median = (xs: number[]) => { if (!xs.length) return null; const s = [...xs].sort((a, b) => a - b); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
 
 const TF_STAGES = ['load', 'doorway', 'corner'];
+/** Games renamed on shipping keep logging under their old sketch name (the log schema never renames), so read both. */
+const LEGACY: Record<string, string> = { cut: 'slice', tilt: 'gravity', smuggle: 'smuggler' };
 
 export function progress(id: string): Progress {
   const events = new Log().events;
@@ -34,17 +36,19 @@ export function progress(id: string): Progress {
     const levels = [...byLevel.entries()].sort((a, b) => a[0] - b[0]).map(([level, s]) => ({ level, n: s.n, hits: s.hits, medianMs: median(s.ms) }));
     return { levels, n: levels.reduce((a, l) => a + l.n, 0), hits: levels.reduce((a, l) => a + l.hits, 0), days: days.size, labels: TF_STAGES };
   }
+  let clock = 0; // when the current question was asked: the present, or the previous result when one present holds several rounds (Smuggle's walls)
   for (const e of events) {
-    const mine = id === 'pack' ? !('sketch' in e) && 'puzzleId' in e : e.sketch === id;
+    const mine = id === 'pack' ? !('sketch' in e) && 'puzzleId' in e : e.sketch === id || e.sketch === LEGACY[id];
     if (!mine) continue;
-    if (e.type === 'present') { present = e; continue; }
+    if (e.type === 'present') { present = e; clock = e.t; continue; }
     const isResult = e.type === 'result' || (e.type === 'drop' && e.attempt === 1);
-    if (!isResult || !present || typeof e.ok !== 'boolean') continue;
+    if (!isResult || !present || typeof e.ok !== 'boolean' || e.firstTry === false) continue; // retries of a round never count
     const level = typeof present.level === 'number' ? present.level : -1;
     const s = byLevel.get(level) ?? { hits: 0, n: 0, ms: [] };
     s.n++;
     if (e.ok) s.hits++;
-    s.ms.push(e.t - present.t);
+    s.ms.push(e.t - clock);
+    clock = e.t;
     byLevel.set(level, s);
     days.add(new Date(e.t).toDateString());
   }

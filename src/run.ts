@@ -91,7 +91,11 @@ export class Run {
 
   /** Seed for the next round: date-derived in a daily, random otherwise. */
   nextSeed() {
-    return this.mode === 'daily' ? hash(`${this.opts.id}|${today()}|${this.round}`) : (Math.random() * 2 ** 31) | 0;
+    return this.mode === 'daily' ? this.seedFor(this.round) : (Math.random() * 2 ** 31) | 0;
+  }
+  /** Today's seed for a given round — for a game whose one puzzle spans several rounds and must be regenerated after a reload. */
+  seedFor(round: number) {
+    return hash(`${this.opts.id}|${today()}|${round}`);
   }
 
   /**

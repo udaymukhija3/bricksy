@@ -2,10 +2,10 @@
 // Orientation carries over from wall to wall, so each wall is planned from where the last left you.
 import * as THREE from 'three';
 import { applyMoves, bboxMin, isPlanar, normalize, orientations, randomPolycube, rotateCell, shapeKey, type Cell, type Move, MOVES, moveLabel } from '../polycube.ts';
-import { SketchStage, cubeGroup, voxelMesh, turnQueue, panel, mulberry32, pick, sleep, pulseMats, easeIn, easeOut, COLOR_OK, COLOR_BAD } from './kit.ts';
+import { SketchStage, cubeGroup, voxelMesh, turnQueue, panel, mulberry32, pick, sleep, pulseMats, easeIn, easeOut, COLOR_OK, COLOR_BAD, AXIS_VEC } from './kit.ts';
 import type { SketchDef, MountCtx } from './types.ts';
 import { Log } from '../log.ts';
-import { Run } from '../run.ts';
+import { Run, today } from '../run.ts';
 
 import { PLATE, GAP, silhouette, placeSil, passes, plateFor, type Wall } from '../smuggle-model.ts';
 
@@ -83,12 +83,28 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   const stage = new SketchStage(stageEl, { gizmo: true });
   // Each wall is a round: a hit if you pass it on the first send, a miss on the first bonk.
   const game = new Run({ id: 'smuggle', name: 'Smuggle', icon: '🧱', dailyRounds: 6 }, hudEl, stageEl);
-  let run = makeRun(cubesFor(game.level), wallsFor(game.level), mulberry32(game.nextSeed()));
+  let run!: ReturnType<typeof makeRun>;
   let cells: Cell[] = [];
   let moves: Move[] = [];
   let wallIdx = 0;
   let turns = 0;
   let wallMissed = false;
+  // A run spans several rounds, so a daily reload must rebuild *this* run, not draw a new one from
+  // the current round's seed: the run's start round and every turn made so far are kept for today.
+  let startRound = 0;
+  let runLevel = 0; // the level this run was drawn at (a restored run keeps it, whatever the round now is)
+  interface SavedRun { startRound: number; moves: Move[]; wallIdx: number; turns: number; wallMissed: boolean }
+  const RUN_KEY = () => `bricksy.smuggle.run.${today()}`;
+  const saveRun = () => { if (game.mode === 'daily') try { localStorage.setItem(RUN_KEY(), JSON.stringify({ startRound, moves, wallIdx, turns, wallMissed } satisfies SavedRun)); } catch { /* quota or private mode */ } };
+  const clearRun = () => { try { localStorage.removeItem(RUN_KEY()); } catch { /* ignore */ } };
+  const loadRun = (): SavedRun | null => {
+    if (game.mode !== 'daily') return null;
+    try {
+      const v = JSON.parse(localStorage.getItem(RUN_KEY()) ?? 'null') as SavedRun | null;
+      // Only a state that agrees with the rounds already recorded: walls passed, plus one if the current wall was bonked.
+      return v && Array.isArray(v.moves) && v.startRound + v.wallIdx + (v.wallMissed ? 1 : 0) === game.round && game.round < game.dailyRounds ? v : null;
+    } catch { return null; }
+  };
   let piece!: ReturnType<typeof cubeGroup>;
   let wallMeshes: ReturnType<typeof voxelMesh>[] = [];
   const world = new THREE.Group();
@@ -122,7 +138,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     Q.enabled = true;
     P.message('');
     P.clearPost();
-    log.push('present', { sketch: 'smuggler', mode: game.mode, level: game.level, start: run.start, walls: run.walls.map((w) => [...w.opening]), par: run.par });
+    log.push('present', { sketch: 'smuggler', mode: game.mode, level: runLevel, start: run.start, walls: run.walls.map((w) => [...w.opening]), par: run.par });
   }
 
   function status() {
@@ -130,8 +146,35 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   }
 
   function newRun() {
+    const saved = loadRun();
+    if (saved) { restore(saved); return; }
+    startRound = game.round;
+    runLevel = game.level;
     run = makeRun(cubesFor(game.level), wallsFor(game.level), mulberry32(game.nextSeed()));
     build();
+    saveRun();
+  }
+
+  /** Rebuild today's run from its start round and replay the turns made so far, without animation. */
+  function restore(saved: SavedRun) {
+    startRound = saved.startRound;
+    runLevel = saved.startRound;
+    run = makeRun(cubesFor(saved.startRound), wallsFor(saved.startRound), mulberry32(game.seedFor(saved.startRound)));
+    build();
+    for (const m of saved.moves) {
+      piece.group.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(AXIS_VEC[m.axis], (m.dir * Math.PI) / 2));
+      moves.push(m);
+      cells = normalize(cells.map((c) => rotateCell(c, m)));
+    }
+    wallIdx = Math.min(saved.wallIdx, run.walls.length - 1);
+    turns = saved.turns;
+    wallMissed = saved.wallMissed;
+    for (let i = 0; i < wallIdx; i++) fadeWall(wallMeshes[i]);
+    if (moves.length) { const { ox, oy } = placeSil(cells); piece.group.position.copy(snapPos(ox, oy, restZ(wallIdx))); }
+    look(wallIdx);
+    status();
+    if (wallMissed) { P.message('Bonked this wall before the reload — it keeps this orientation; plan from here.', 'bad'); offerFit(); }
+    else if (wallIdx) P.message(`Back at wall ${wallIdx + 1}.`);
   }
 
   function look(i: number, animate = false) {
@@ -181,7 +224,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     const front = snapPos(ox, oy, wall.z + 1.2);
     // Slide to the wall (snapping onto the lattice on the way).
     await stage.tween(420, (t) => piece.group.position.lerpVectors(from, front, easeIn(t)));
-    log.push('result', { sketch: 'smuggler', wall: wallIdx, ok, cells });
+    log.push('result', { sketch: 'smuggler', wall: wallIdx, ok, firstTry: !wallMissed, cells });
     if (ok) {
       const through = snapPos(ox, oy, restZ(wallIdx + 1));
       await stage.tween(500, (t) => piece.group.position.lerpVectors(front, through, easeOut(t)));
@@ -190,6 +233,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
       if (!wallMissed) game.hit();
       wallMissed = false;
       wallIdx++;
+      if (game.over || wallIdx >= run.walls.length) clearRun(); else saveRun();
       if (game.over) { status(); game.showOver(newRun); return; }
       if (wallIdx >= run.walls.length) {
         const verdict = turns === run.par ? 'Par. Clean.' : turns < run.par ? 'Under par?!' : `${turns - run.par} over par.`;
@@ -207,13 +251,18 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
       const back = front.clone().setZ(restZ(wallIdx));
       await stage.tween(380, (t) => piece.group.position.lerpVectors(front, back, easeOut(t)));
       if (!wallMissed) { wallMissed = true; game.miss(); }
+      if (game.over) clearRun(); else saveRun();
       if (game.over) { game.showOver(newRun); return; }
       P.message(`Bonk. The silhouette doesn't fit the opening. It keeps this orientation — plan from here.`, 'bad');
-      // Never stuck: reality can show the fewest turns that pass from here (the miss stands).
-      P.post([{ label: 'Show a fit', onClick: () => { const seq = fitFrom(cells, wall); log.push('reveal', { sketch: 'smuggler', wall: wallIdx, moves: seq.map(moveLabel) }); Q.render(seq, 'solution', 'A FIT'); void commit(seq); } }]);
+      offerFit();
     }
     Q.reset();
     Q.enabled = true;
+  }
+
+  /** Never stuck: after a bonk, reality can show the fewest turns that pass from here (the miss stands). */
+  function offerFit() {
+    P.post([{ label: 'Show a fit', onClick: () => { const seq = fitFrom(cells, run.walls[wallIdx]); log.push('reveal', { sketch: 'smuggler', wall: wallIdx, moves: seq.map(moveLabel) }); Q.render(seq, 'solution', 'A FIT'); void commit(seq); } }]);
   }
 
   game.begin(newRun);
