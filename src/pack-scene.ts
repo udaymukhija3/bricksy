@@ -69,6 +69,7 @@ export class PackStage {
   private puzzle: PackPuzzle | null = null;
   private w = 1;
   private h = 1;
+  private ro: ResizeObserver;
 
   constructor(private canvas: HTMLCanvasElement) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -84,10 +85,20 @@ export class PackStage {
     ground.receiveShadow = true;
     this.scene.add(ground, this.mold, this.ghost, this.piece);
     this.gizmo = makeGizmo();
-    new ResizeObserver(() => this.resize()).observe(canvas.parentElement!);
+    this.ro = new ResizeObserver(() => this.resize());
+    this.ro.observe(canvas.parentElement!);
     this.resize();
     this.renderer.setAnimationLoop(() => this.frame());
   }
+
+  dispose() {
+    this.renderer.setAnimationLoop(null);
+    this.ro.disconnect();
+    this.renderer.dispose();
+  }
+
+  /** Item and marker colours for the skinned games. */
+  setItemColor(color: number, marker?: number) { this.mats.base.color.set(color); if (marker != null) this.mats.marker.color.set(marker); }
 
   setPuzzle(p: PackPuzzle) {
     this.puzzle = p;

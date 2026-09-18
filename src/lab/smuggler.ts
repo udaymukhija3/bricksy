@@ -1,26 +1,13 @@
 // Shape Smuggler: get one piece through a sequence of openings with the fewest turns.
 // Orientation carries over from wall to wall, so each wall is planned from where the last left you.
 import * as THREE from 'three';
-import { applyMoves, bboxMin, extents, isPlanar, normalize, orientations, randomPolycube, rotateCell, shapeKey, type Cell, type Move, MOVES, moveLabel } from '../polycube';
+import { applyMoves, bboxMin, isPlanar, normalize, orientations, randomPolycube, rotateCell, shapeKey, type Cell, type Move, MOVES, moveLabel } from '../polycube';
 import { SketchStage, cubeGroup, voxelMesh, turnQueue, panel, mulberry32, pick, sleep, pulseMats, easeIn, easeOut, COLOR_OK, COLOR_BAD } from './kit';
 import type { SketchDef, MountCtx } from './types';
 import { Log } from '../log';
 import { Run } from '../run';
 
-const PLATE = 8, MARGIN = 2, GAP = 7;
-
-const silhouette = (cells: Cell[]) => new Set(cells.map(([x, y]) => `${x},${y}`));
-
-/** Where a normalised silhouette sits in the plate: centred, rounded to the lattice. */
-function placeSil(cells: Cell[]) {
-  const n = normalize(cells);
-  const [w, hgt] = extents(n);
-  const ox = MARGIN + Math.round((PLATE - 2 * MARGIN - 1 - w) / 2);
-  const oy = MARGIN + Math.round((PLATE - 2 * MARGIN - 1 - hgt) / 2);
-  return { ox, oy, keys: new Set(n.map(([x, y]) => `${x + ox},${y + oy}`)) };
-}
-
-interface Wall { opening: Set<string>; plate: Cell[]; z: number }
+import { PLATE, GAP, silhouette, placeSil, passes, plateFor, type Wall } from '../smuggle-model';
 
 function makeRun(cubes: number, walls: number, rng: () => number) {
   for (let tries = 0; tries < 200; tries++) {
@@ -41,9 +28,7 @@ function makeRun(cubes: number, walls: number, rng: () => number) {
       if (!cands.length) break;
       const t = pick(cands, rng);
       const opening = placeSil(t.cells).keys;
-      const plate: Cell[] = [];
-      for (let x = 0; x < PLATE; x++) for (let y = 0; y < PLATE; y++) if (!opening.has(`${x},${y}`)) plate.push([x, y, 0]);
-      list.push({ opening, plate, z: -GAP * (i + 1) });
+      list.push({ opening, plate: plateFor(opening), z: -GAP * (i + 1) });
       prevSil = silhouette(t.cells);
     }
     if (list.length !== walls) continue;
@@ -51,8 +36,6 @@ function makeRun(cubes: number, walls: number, rng: () => number) {
   }
   throw new Error('no run');
 }
-
-const passes = (cells: Cell[], wall: Wall) => [...placeSil(cells).keys].every((k) => wall.opening.has(k));
 
 /** Fewest turns to pass every wall: 0-1 BFS over (orientation, walls passed). */
 function par(start: Cell[], walls: Wall[]) {

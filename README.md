@@ -7,6 +7,7 @@ and an **endless** mode (lives, score, best).
 
 | Game | URL | You commit to… | Reality then… |
 | --- | --- | --- | --- |
+| 🚚 **Tight Fit** | `/tightfit/` | a chain: load the van → doorway → the corner, on one item | ten jobs, three stars each (the saga) |
 | 📦 **Pack** | `/pack/` | a turn sequence | drops the piece; fits or collides |
 | 🔪 **Cut** | `/cut/` | one of four outlines | cuts the solid, lifts the half away |
 | 📐 **Fold** | `/fold/` | which face ends opposite | folds the net, tumbles the cube |
@@ -36,6 +37,17 @@ axis while a finger is down), targets ≥ 44px, and cameras fit the scene at any
 aspect ratio and reframe on rotation. Phone portrait fits scene + controls on
 one screen; phones held sideways get the scene on the left and controls on the
 right; match mode stacks YOU over TARGET when the halves would be too narrow.
+
+## Tight Fit (`/tightfit/`, `src/tightfit/`)
+
+The saga. Moving day: each job is a chain of stages on **one persistent item**
+— load it into the van (pack), carry it through the doorway (smuggle, in the
+orientation it was loaded), then the van takes a corner (rigid-body tilt).
+Three stars = every stage first try; a stage fails after three tries and the
+job restarts. Items and stages are seeded per job so every player gets the same
+ten jobs. Episode 1, *First Day*, ends with a boss job that chains four stages.
+`src/tightfit/model.ts` is pure and tested (loads, doorways, rigid-body
+corners); `stages.ts` renders; `jobs.ts` is the episode; `main.ts` is the map.
 
 ## Product layer (`src/run.ts`)
 
