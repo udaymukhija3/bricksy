@@ -87,5 +87,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
 export const count: SketchDef = {
   id: 'count', title: 'Count', status: 'playable', skill: 'inference behind occlusion', icon: '🔢',
   tagline: 'A stack seen from one angle. Some cubes are hidden behind others. How many cubes are there? Commit, then it turns around.',
+  about: 'Counting a stack from one viewpoint means inferring what is hidden from what rests on what. Only stacks where every column\'s top is visible are served, so the count is always inferable, and at least two cubes are always hidden.',
+  controls: 'Type or step the number, then Commit (Enter). Arrow keys nudge it.',
   mount,
 };

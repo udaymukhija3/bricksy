@@ -14,5 +14,9 @@ export interface SketchDef {
   status: 'flagship' | 'playable' | 'concept';
   icon?: string;
   href?: string;
+  /** Why this game exists: the skill it isolates and what stops a player from bypassing it. */
+  about?: string;
+  /** One line of controls (keys and gestures). */
+  controls?: string;
   mount?: (ctx: MountCtx) => () => void;
 }

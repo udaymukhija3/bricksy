@@ -218,5 +218,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
 export const wayfind: SketchDef = {
   id: 'wayfind', title: 'Wayfind', status: 'playable', skill: 'perspective taking · mental maps', icon: '🧭',
   tagline: 'See the maze from above for a few seconds. Then walk it from inside, committing a direction at every junction. Later the map\'s up is not the way you face.',
+  about: 'Perspective taking: the map is seen from above, then walked from inside, where every corridor looks alike. Mazes have loops so wall-following is a poor strategy; a hit is a walk with no wrong turn; and later your start heading no longer matches the map\'s up, so two frames of reference have to be aligned before memory is any use.',
+  controls: 'Memorise, then arrows (or WASD) choose a direction at each junction.',
   mount,
 };

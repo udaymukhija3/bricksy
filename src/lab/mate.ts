@@ -281,5 +281,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
 export const mate: SketchDef = {
   id: 'mate', title: 'Mate', status: 'playable', skill: 'multi-step transformation lookahead', icon: '♟️',
   tagline: 'Pieces attack where their shadow falls. Turn or slide one piece so the red king has nowhere left — without seeing the new shadow first.',
+  about: 'Lookahead over transformations: a piece attacks where its shadow falls, and a turn changes the shadow\'s shape, not just its place. The shadow after your move is never previewed. Puzzles are searched to have exactly one answer, forced to be a turn, then a turn about a horizontal axis, then mate in two with a king that steps to its safest square.',
+  controls: '1–3 select a piece, x y z turn it (shift for −90°), arrows slide it, Enter moves.',
   mount,
 };

@@ -27,6 +27,8 @@ export class Log {
   constructor() { load(); }
 
   get size() { return load().length; }
+  /** Read-only view for analysis (progress panel, dev tools). */
+  get events(): readonly Event[] { return load(); }
 
   push(type: string, data: Record<string, unknown> = {}) {
     const ev = load();

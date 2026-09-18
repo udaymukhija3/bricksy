@@ -153,6 +153,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     for (const q of queues) q.enabled = false;
     const out = check(puzzle, plans);
     log.push('commit', { sketch: 'assemble', plans, ok: out.ok, failedAt: out.failedAt, reason: out.reason });
+    log.push('result', { sketch: 'assemble', ok: out.ok, failedAt: out.failedAt, reason: out.reason });
     for (let i = 0; i < puzzle.parts.length; i++) {
       select(i);
       await flyIn(i, plans[i]);
@@ -202,5 +203,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
 export const assemble: SketchDef = {
   id: 'assemble', title: 'Assemble', status: 'playable', skill: 'part–whole composition', icon: '🧩',
   tagline: 'A ghost of the whole and its parts, each shown turned away from how it fits. Give every part its turns and an anchor, then build — the first collision stops it.',
+  about: 'Part–whole composition: several parts, one silhouette, mutual exclusion. Placing one part at a time with live feedback degrades to trial and error, so every part gets its turns and an anchor before anything moves and the first collision stops the build.',
+  controls: '1–4 select a part, x y z queue its turns (shift for −90°), click a ghost cell for its anchor (click again for the cell behind), Enter builds.',
   mount,
 };

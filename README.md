@@ -76,6 +76,11 @@ Every game shares one run loop:
 - Difficulty is a function of the round index in a daily and of the score
   in endless. The verdict and the primary action are mirrored into a banner
   on the stage, so on a phone you never have to scroll to find "Next".
+- **? panel** on every game: how to play, the controls, *why this game*
+  (the skill it isolates and its bypass defence), and your learning curve —
+  first-try accuracy and median time to commit per difficulty level, read
+  back from the local event log (`src/progress.ts`). That table is the
+  product's answer to "am I getting better at seeing this?".
 
 ## Pack (`/pack/`)
 

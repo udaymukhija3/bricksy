@@ -104,7 +104,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     Q.enabled = true;
     P.message('');
     P.clearPost();
-    log.push('present', { sketch: 'smuggler', start: run.start, walls: run.walls.map((w) => [...w.opening]), par: run.par });
+    log.push('present', { sketch: 'smuggler', mode: game.mode, level: game.level, start: run.start, walls: run.walls.map((w) => [...w.opening]), par: run.par });
   }
 
   function status() {
@@ -208,5 +208,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
 export const smuggler: SketchDef = {
   id: 'smuggle', title: 'Smuggle', status: 'playable', skill: 'rotation planning', icon: '🧱',
   tagline: 'One piece, three walls, each with a different opening. Every turn you make carries into the next wall.',
+  about: 'Rotation planning: three walls, one piece, and your orientation carries over from wall to wall, so each opening is planned from where the last one left you. Par is computed by search, so you can see how far from the shortest route you were.',
+  controls: 'x y z turn +90°, shift+key −90°, backspace undo, Enter commits the turns for the next wall.',
   mount,
 };

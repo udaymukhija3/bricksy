@@ -251,5 +251,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
 export const shove: SketchDef = {
   id: 'shove', title: 'Shove', status: 'playable', skill: 'planning under irreversible moves', icon: '🏗️',
   tagline: 'One awkward crate, one socket. Push it, turn it — but plan 2–4 moves at a time and commit: a blocked move drops the rest, and a crate in a corner stays there.',
+  about: 'Sokoban\'s real skill is simulating the state space — a crate against a wall cannot be pulled back — and the turnable crate adds orientation to position. Single steps with free undo would make it trial and error, so you commit plans of 2–4 moves, a blocked move drops the rest, there is no undo, and the budget is par + 3. Every level is generated from the reachable states, so par is exact.',
+  controls: 'Arrows push, Q/E turn the crate (from a cell next to it), backspace undo the plan, Enter goes.',
   mount,
 };

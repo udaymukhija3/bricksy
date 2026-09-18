@@ -282,5 +282,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
 export const slice: SketchDef = {
   id: 'cut', title: 'Cut', status: 'playable', skill: 'cross-section prediction', icon: '🔪',
   tagline: 'A solid and a blade. Call the cross-section, then watch it cut.',
+  about: 'Predicting a cross-section means holding the solid and the plane together in your head. The four outlines are all real cross-sections (of this solid or of the same cut on another), filtered to look different, and the plane is nudged off the lattice so no cut passes through a vertex.',
+  controls: 'Tap an outline, then Cut. Enter commits; Enter again for the next.',
   mount,
 };

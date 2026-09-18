@@ -150,5 +150,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
 export const fold: SketchDef = {
   id: 'fold', title: 'Fold', status: 'playable', skill: 'net → solid', icon: '📐',
   tagline: 'A flat net, each face marked. Which face lands opposite the highlighted one? Commit, then watch it fold.',
+  about: 'Folding a net is the classic spatial test: which faces meet, which end up opposite. All eleven cube nets are used, and the fold is shown after you commit, never before.',
+  controls: 'Click the face you think ends opposite the marked one, then Fold it (Enter).',
   mount,
 };

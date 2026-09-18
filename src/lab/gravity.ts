@@ -104,7 +104,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     P.clearPost();
     hintEl.textContent = `The room will turn ${moveLabel(room.move)} (see gizmo). ${room.loose.length} loose cubes.`;
     stage.highlightAxis(room.move.axis, room.move.dir);
-    log.push('present', { sketch: 'gravity', room: { n: room.n, fixed: room.fixed, loose: room.loose, move: moveLabel(room.move), socket: room.socket } });
+    log.push('present', { sketch: 'gravity', mode: run.mode, level: run.level, room: { n: room.n, fixed: room.fixed, loose: room.loose, move: moveLabel(room.move), socket: room.socket } });
   }
 
   function onClick(ev: MouseEvent) {
@@ -150,5 +150,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
 export const gravity: SketchDef = {
   id: 'tilt', title: 'Tilt', status: 'playable', skill: 'predicting motion under a rotated frame', icon: '🎲',
   tagline: 'The room is about to turn. Gravity stays down — the room doesn\'t. Pick the cube that ends in the socket, then turn it.',
+  about: 'Gravity stays down while the room turns, so you have to imagine motion in a frame that is no longer yours. Rooms are only served when at least two cubes move and the socket starts empty, so nothing can be read off the picture.',
+  controls: 'Click a cube (or press 1–6), then Turn the room (Enter). The gizmo shows the turn.',
   mount,
 };

@@ -136,5 +136,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
 export const mirror: SketchDef = {
   id: 'mirror', title: 'Mirror', status: 'playable', skill: 'rotation vs reflection', icon: '🪞',
   tagline: 'Two shapes, nearly identical. Can A be rotated into B, or is B the mirror image? Decide, then watch A try.',
+  about: 'A rotation can never turn a shape into its mirror image — but only for chiral, non-planar shapes; a flat shape can be flipped over in 3D. So every pair here is non-planar, from five cubes up, and the reveal turns A to its best fit and shows the cells it cannot cover.',
+  controls: 'Pick rotation or mirror, then commit (Enter).',
   mount,
 };

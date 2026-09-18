@@ -131,5 +131,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
 export const flash: SketchDef = {
   id: 'flash', title: 'Flash', status: 'playable', skill: 'spatial memory', icon: '⚡',
   tagline: 'See a shape for three seconds. It vanishes. Rebuild it. Later, the view turns before you build, so memory has to survive a rotation.',
+  about: 'Spatial memory: hold a 3D shape after it is gone, and later hold it through a 90° change of viewpoint. Difficulty is cubes first, then look time, then the turned view.',
+  controls: 'Look, then toggle cells layer by layer and Commit (Enter).',
   mount,
 };

@@ -182,7 +182,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     const ok = dirOk && speedOk;
     CD.enabled = CS.enabled = false;
     commitB.disabled = true;
-    log.push('result', { sketch: 'gears', dir: CD.picked, speed: CS.picked, dirOk, speedOk, ratio });
+    log.push('result', { sketch: 'gears', ok, dir: CD.picked, speed: CS.picked, dirOk, speedOk, ratio });
     running = true;
     t0 = performance.now();
     await sleep(3200);
@@ -204,5 +204,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
 export const gears: SketchDef = {
   id: 'gears', title: 'Gears', status: 'playable', skill: 'propagating motion through a system', icon: '⚙️',
   tagline: 'The red gear turns clockwise. Which way does the blue gear go — and faster or slower? Decide, then run the machine.',
+  about: 'Motion through a system: each mesh reverses direction and the ratio of teeth sets the speed. You commit direction (and later speed) of the last gear before the train runs.',
+  controls: 'Pick a direction (and speed when asked), then Run it (Enter).',
   mount,
 };

@@ -145,5 +145,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
 export const shadows: SketchDef = {
   id: 'shadows', title: 'Shadows', status: 'playable', skill: '2D → 3D reconstruction', icon: '🔦',
   tagline: 'Top, front and side silhouettes of a hidden object. Build what casts them — you see your build in 3D, but its silhouettes stay hidden until you commit.',
+  about: 'Three silhouettes fix an object only partly; rebuilding one that casts them is 2D→3D reconstruction. You never see your own build\'s silhouettes until you commit — with them visible this would collapse into pure cell logic (Picross 3D) — and the cube count is fixed so the biggest-possible-object trick fails.',
+  controls: 'Toggle cells layer by layer (bottom layer first), then Commit (Enter).',
   mount,
 };
