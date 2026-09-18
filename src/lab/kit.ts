@@ -21,6 +21,12 @@ export function mulberry32(seed: number) {
   };
 }
 export const pick = <T>(arr: readonly T[], rng: () => number) => arr[Math.floor(rng() * arr.length)];
+/** Fisher–Yates; a `sort(() => rng() - 0.5)` shuffle differs between JS engines, so a daily would differ between phones and desktops. */
+export function shuffle<T>(arr: readonly T[], rng: () => number): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
 
 /** Tiny element helper: h('div.cls#id', {attrs}, ...children). */
 export function h(spec: string, attrs: Record<string, unknown> = {}, ...children: (Node | string | null | undefined)[]) {

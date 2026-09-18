@@ -1,6 +1,6 @@
 // Slice: a solid and a cutting plane. Predict the cross-section before the blade goes through.
 import * as THREE from 'three';
-import { SketchStage, choices, panel, h, mulberry32, pick, sleep, easeInOut, easeOut } from './kit.ts';
+import { SketchStage, choices, panel, h, mulberry32, pick, shuffle, sleep, easeInOut, easeOut } from './kit.ts';
 import type { SketchDef, MountCtx } from './types.ts';
 import { Log } from '../log.ts';
 import { Run } from '../run.ts';
@@ -173,13 +173,13 @@ export function pickCase(level: number, rng: () => number): SliceCase | null {
     for (const c of CUTS) if (c !== cut) { const s = section(solid.geo, c); if (s) pool.push(s); }
     for (const o of SOLIDS) if (o !== solid) { const s = section(o.geo, cut); if (s) pool.push(s); }
     const chosen: Section[] = [];
-    for (const s of pool.sort(() => rng() - 0.5)) {
+    for (const s of shuffle(pool, rng)) {
       if (similar(s, answer) || chosen.some((c) => similar(c, s))) continue;
       chosen.push(s);
       if (chosen.length === want) break;
     }
     if (chosen.length < want) continue;
-    const all = [answer, ...chosen].map((s, i) => ({ id: String(i), s })).sort(() => rng() - 0.5);
+    const all = shuffle([answer, ...chosen].map((s, i) => ({ id: String(i), s })), rng);
     return { solid, cut, answer, options: all, correctId: all.find((o) => o.s === answer)!.id };
   }
   return null;
