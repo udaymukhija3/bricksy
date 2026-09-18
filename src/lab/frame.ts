@@ -10,7 +10,7 @@ const fmtMs = (ms: number | null) => (ms == null ? '—' : ms < 10000 ? `${(ms /
 
 export function helpCard(def: SketchDef, close: () => void) {
   const p = progress(def.id);
-  const rows = p.levels.map((l) => h('tr', {}, h('td', {}, l.level < 0 ? '?' : String(l.level + 1)), h('td', {}, `${l.hits}/${l.n}`), h('td', {}, `${Math.round((100 * l.hits) / l.n)}%`), h('td', {}, fmtMs(l.medianMs))));
+  const rows = p.levels.map((l) => h('tr', {}, h('td', {}, p.labels?.[l.level] ?? (l.level < 0 ? '?' : String(l.level + 1))), h('td', {}, `${l.hits}/${l.n}`), h('td', {}, `${Math.round((100 * l.hits) / l.n)}%`), h('td', {}, fmtMs(l.medianMs))));
   return h('div.card.help', {},
     h('h2', {}, `${def.icon ?? ''} ${def.title}`, h('span.sub', {}, ` ${def.skill}`)),
     h('h4', {}, 'How to play'), h('p', {}, def.tagline), def.controls ? h('p.muted', {}, def.controls) : null,
@@ -18,7 +18,7 @@ export function helpCard(def: SketchDef, close: () => void) {
     h('h4', {}, 'Your learning curve'),
     p.n
       ? h('div', {}, h('p.muted', {}, `${p.hits}/${p.n} first-try over ${p.days} day${p.days === 1 ? '' : 's'}. Per difficulty level: hits, accuracy, median time to commit.`),
-        h('table.curve', {}, h('thead', {}, h('tr', {}, h('th', {}, 'level'), h('th', {}, 'hits'), h('th', {}, 'acc'), h('th', {}, 'time'))), h('tbody', {}, ...rows)))
+        h('table.curve', {}, h('thead', {}, h('tr', {}, h('th', {}, p.labels ? 'stage' : 'level'), h('th', {}, 'hits'), h('th', {}, 'acc'), h('th', {}, 'time'))), h('tbody', {}, ...rows)))
       : h('p.muted', {}, 'Nothing yet — every commit is logged on this device, and this table fills in as you play.'),
     h('div.row', {}, h('button.primary', { onclick: close }, 'Back to the game')),
   );

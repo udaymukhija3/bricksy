@@ -8,6 +8,8 @@ import { makeItem, type Body } from './model.ts';
 import { STAGES } from './stages.ts';
 import { EPISODE, JOBS, STAGE_NAMES, dailyJob, type JobDef } from './jobs.ts';
 import { today, dayNumber, dailyRecord, statsOf } from '../run.ts';
+import { helpCard } from '../lab/frame.ts';
+import { TIGHT_FIT } from '../games.ts';
 
 const app = document.getElementById('app')!;
 const sfx = new Sfx();
@@ -67,8 +69,12 @@ function renderMap() {
       h('div.card-top', { style: { marginTop: '6px' } }, h('span.skill', {}, `${dj.cubes} cubes · same job for everyone today`),
         rec?.done ? h('span.today.done', {}, `done · ${starsGlyph(rec.results.filter(Boolean).length === rec.results.length ? 3 : rec.results.filter(Boolean).length >= rec.results.length - 1 ? 2 : 1)} ${rec.results.map((r) => (r ? '🟩' : '🟥')).join('')}`)
           : h('span.today', {}, st.dayStreak ? `play → · day streak ${st.dayStreak}` : 'play →'))));
+  const help = h('div.overlay.helpwrap', { hidden: true });
+  const closeHelp = () => { help.hidden = true; help.replaceChildren(); };
+  const helpB = h('button.icon.help-btn', { title: 'How to play, why this game, your progress', 'aria-label': 'Help', onclick: () => { if (help.hidden) { help.replaceChildren(helpCard(TIGHT_FIT, closeHelp)); help.hidden = false; } else closeHelp(); } }, '?');
+  map.append(help);
   app.replaceChildren(
-    h('header', {}, h('div.brand', {}, h('a', { href: '../' }, '← bricksy'), ' 🚚 Tight Fit ', h('span.sub', {}, `Episode ${EPISODE.id} · ${EPISODE.title}`)), h('div.hud', {}, h('span.stat', {}, `stars `, h('b', {}, `${total}/${JOBS.length * 3}`)))),
+    h('header', {}, h('div.brand', {}, h('a', { href: '../' }, '← bricksy'), ' 🚚 Tight Fit ', h('span.sub', {}, `Episode ${EPISODE.id} · ${EPISODE.title}`)), h('div.hudwrap', {}, h('div.hud', {}, h('span.stat', {}, `stars `, h('b', {}, `${total}/${JOBS.length * 3}`))), helpB)),
     h('p#instructions', {}, EPISODE.blurb, ' Each job is a chain: load the van, get it through the door, survive the corner. ', h('b', {}, 'Three stars = every stage first try.')),
     dailyCard,
     map,
@@ -124,7 +130,7 @@ async function playJob(job: JobDef) {
       stageEl, panelEl, hintEl: hint, item, itemName: job.item, itemColor: job.color, distance: st.d, rng, others, sfx,
       onAttempt: (ok, attempt) => { if (!ok && attempt === 1) { misses++; paint(); } else if (!ok && attempt > 1) { misses++; paint(); } },
     });
-    log.push('tf_stage', { job: job.id, daily: !!job.daily, stage: i, type: st.type, firstTry: res.firstTry, attempts: res.attempts, failed: res.failed });
+    log.push('tf_stage', { job: job.id, daily: !!job.daily, stage: i, stageType: st.type, firstTry: res.firstTry, attempts: res.attempts, failed: res.failed });
     stageResults.push(!!res.firstTry && !res.failed);
     cleanup = res.cleanup;
     if (res.failed) { failed = true; break; }

@@ -14,7 +14,12 @@ import { wayfind } from './lab/wayfind.ts';
 import { assemble } from './lab/assemble.ts';
 import { mate } from './lab/mate.ts';
 
-export const TIGHT_FIT: SketchDef = { id: 'tightfit', title: 'Tight Fit', icon: '🚚', status: 'flagship', skill: 'saga · load → doorway → corner', tagline: 'Moving day. Load the van, get it through the door, survive the corner — the same sofa the whole way. Ten jobs, three stars each.', href: 'tightfit/' };
+export const TIGHT_FIT: SketchDef = {
+  id: 'tightfit', title: 'Tight Fit', icon: '🚚', status: 'flagship', skill: 'saga · load → doorway → corner', href: 'tightfit/',
+  tagline: 'Moving day. Load the van, get it through the door, survive the corner — the same sofa the whole way. Ten jobs, three stars each, plus today\'s job.',
+  about: 'The saga chains three predictions on one persistent item: the orientation you load it in is the orientation you carry it to the doorway, and the corner then moves it as a rigid body. Nothing resets between stages, so a mental model of the object has to survive across them. Three stars means every stage first try; a stage fails after three tries and the job restarts.',
+  controls: 'x y z queue +90° turns, shift+key −90°, backspace undo, Enter commits. Corner stage: pick which body reaches the socket, then Enter.',
+};
 export const PACK: SketchDef = {
   id: 'pack', title: 'Pack', icon: '📦', status: 'flagship', skill: 'mental rotation', href: 'pack/',
   tagline: 'Turn the piece so it drops into the hole. Eight pieces a day, or endless with three lives.',
