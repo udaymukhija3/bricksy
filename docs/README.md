@@ -1,5 +1,7 @@
 # Handoffs — one per idea
 
+See [STATUS.md](STATUS.md) for where each game stands against the product bar.
+
 Each doc opens with the spatial concept (what the mind has to do), then the
 bypass test ("could someone get good without it?"), then what exists, then
 open questions. Start a thread by reading its doc and checking out its branch.
