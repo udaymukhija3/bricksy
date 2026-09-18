@@ -6,7 +6,8 @@ import { Sfx } from '../sfx';
 import { Log } from '../log';
 import { makeItem, type Body } from './model';
 import { STAGES } from './stages';
-import { EPISODE, JOBS, STAGE_NAMES, type JobDef } from './jobs';
+import { EPISODE, JOBS, STAGE_NAMES, dailyJob, type JobDef } from './jobs';
+import { today, dayNumber, dailyRecord, statsOf } from '../run';
 
 const app = document.getElementById('app')!;
 const sfx = new Sfx();
@@ -19,6 +20,8 @@ function hash(s: string) {
   return x >>> 0;
 }
 const seeded = (...parts: (string | number)[]) => mulberry32(hash(`tf${EPISODE.id}|${parts.join('|')}`));
+const jobSeed = (job: JobDef) => job.seedKey ?? job.id;
+const DAILY_KEY = () => `bricksy.tightfit.daily.${today()}`;
 
 function loadStars(): Record<number, number> {
   try { return JSON.parse(localStorage.getItem(STARS_KEY) ?? '{}'); } catch { return {}; }
@@ -52,9 +55,22 @@ function renderMap() {
   const map = h('div.tf-map');
   map.innerHTML = svg;
   for (const n of nodes) map.append(n.node);
+  // Today's job: the same chain for everyone, once a day, with its own stars.
+  const dn = dayNumber();
+  const dj = dailyJob(dn, seeded('daily', dn));
+  const rec = dailyRecord('tightfit');
+  const st = statsOf('tightfit');
+  const dailyCard = h('a.card.flag.tf-daily', { href: '#', onclick: (e: Event) => { e.preventDefault(); if (!rec?.done) intro(dj); } },
+    h('div.icon-big', {}, '📅'),
+    h('div', {}, h('h3', {}, `Today's job #${dn} — ${dj.customer}’s ${dj.item}`),
+      h('p', {}, dj.stages.map((s) => STAGE_NAMES[s.type]).join(' → ')),
+      h('div.card-top', { style: { marginTop: '6px' } }, h('span.skill', {}, `${dj.cubes} cubes · same job for everyone today`),
+        rec?.done ? h('span.today.done', {}, `done · ${starsGlyph(rec.results.filter(Boolean).length === rec.results.length ? 3 : rec.results.filter(Boolean).length >= rec.results.length - 1 ? 2 : 1)} ${rec.results.map((r) => (r ? '🟩' : '🟥')).join('')}`)
+          : h('span.today', {}, st.dayStreak ? `play → · day streak ${st.dayStreak}` : 'play →'))));
   app.replaceChildren(
     h('header', {}, h('div.brand', {}, h('a', { href: '../' }, '← bricksy'), ' 🚚 Tight Fit ', h('span.sub', {}, `Episode ${EPISODE.id} · ${EPISODE.title}`)), h('div.hud', {}, h('span.stat', {}, `stars `, h('b', {}, `${total}/${JOBS.length * 3}`)))),
     h('p#instructions', {}, EPISODE.blurb, ' Each job is a chain: load the van, get it through the door, survive the corner. ', h('b', {}, 'Three stars = every stage first try.')),
+    dailyCard,
     map,
   );
 }
@@ -64,7 +80,7 @@ function renderMap() {
 function intro(job: JobDef) {
   const stagesList = job.stages.map((s) => STAGE_NAMES[s.type]).join(' → ');
   const card = h('div.overlay', {}, h('div.card', {},
-    h('h2', {}, `Job ${job.id} — ${job.customer}’s ${job.item}`),
+    h('h2', {}, job.daily ? `Today's job — ${job.customer}’s ${job.item}` : `Job ${job.id} — ${job.customer}’s ${job.item}`),
     h('p.muted', {}, job.line),
     h('p', {}, stagesList),
     h('div.row', {}, h('button.primary', { onclick: () => { card.remove(); void playJob(job); } }, 'Start ↵'), h('button', { onclick: () => card.remove() }, 'Back')),
@@ -85,7 +101,8 @@ async function playJob(job: JobDef) {
     h('p#instructions', {}, h('span.muted', {}, job.line + ' '), hint),
     stageEl, panelEl,
   ));
-  let item = makeItem(job.cubes, seeded(job.id, 'item'));
+  let item = makeItem(job.cubes, seeded(jobSeed(job), 'item'));
+  const stageResults: boolean[] = [];
   let misses = 0;
   let failed = false;
   const starsEl = h('span.stat.tf-live');
@@ -96,36 +113,56 @@ async function playJob(job: JobDef) {
   let cleanup: (() => void) | null = null;
   for (const [i, st] of job.stages.entries()) {
     cleanup?.();
-    title.textContent = `Job ${job.id} · ${job.customer}’s ${job.item}`;
+    title.textContent = job.daily ? `Today's job · ${job.customer}’s ${job.item}` : `Job ${job.id} · ${job.customer}’s ${job.item}`;
     stageStat.innerHTML = `stage <b>${i + 1}/${job.stages.length}</b> · ${STAGE_NAMES[st.type]}`;
     paint();
-    const rng = seeded(job.id, 'stage', i);
+    const rng = seeded(jobSeed(job), 'stage', i);
     const others: Body[] = st.type === 'corner'
-      ? [{ cells: makeItem(4, seeded(job.id, 'other', 1)), name: 'box of books', color: 0x6b8fd6 }, { cells: [[0, 0, 0], [1, 0, 0]], name: 'crate', color: 0x46a758 }]
+      ? [{ cells: makeItem(4, seeded(jobSeed(job), 'other', 1)), name: 'box of books', color: 0x6b8fd6 }, { cells: [[0, 0, 0], [1, 0, 0]], name: 'crate', color: 0x46a758 }]
       : [];
     const res = await STAGES[st.type]({
       stageEl, panelEl, hintEl: hint, item, itemName: job.item, itemColor: job.color, distance: st.d, rng, others, sfx,
       onAttempt: (ok, attempt) => { if (!ok && attempt === 1) { misses++; paint(); } else if (!ok && attempt > 1) { misses++; paint(); } },
     });
-    log.push('tf_stage', { job: job.id, stage: i, type: st.type, firstTry: res.firstTry, attempts: res.attempts, failed: res.failed });
+    log.push('tf_stage', { job: job.id, daily: !!job.daily, stage: i, type: st.type, firstTry: res.firstTry, attempts: res.attempts, failed: res.failed });
+    stageResults.push(!!res.firstTry && !res.failed);
     cleanup = res.cleanup;
     if (res.failed) { failed = true; break; }
     item = res.item;
   }
   const leave = () => { cleanup?.(); cleanup = null; };
   const stars = failed ? 0 : misses === 0 ? 3 : misses === 1 ? 2 : 1;
-  if (!failed) saveStars(job.id, stars);
-  log.push('tf_job_end', { job: job.id, stars, misses, failed });
+  if (!failed && !job.daily) saveStars(job.id, stars);
+  if (job.daily) {
+    // Today's job counts once, failed or not: the record is what the hub and the day streak read.
+    while (stageResults.length < job.stages.length) stageResults.push(false);
+    localStorage.setItem(DAILY_KEY(), JSON.stringify({ results: stageResults, done: true }));
+    const st = statsOf('tightfit');
+    if (st.lastDate !== today()) {
+      const y = new Date(); y.setDate(y.getDate() - 1);
+      st.dayStreak = st.lastDate === today(y) ? st.dayStreak + 1 : 1;
+      st.bestDayStreak = Math.max(st.bestDayStreak, st.dayStreak);
+      st.lastDate = today(); st.played++; st.totalScore += stars; st.totalRounds += 3;
+      localStorage.setItem('bricksy.tightfit.stats', JSON.stringify(st));
+    }
+  }
+  log.push('tf_job_end', { job: job.id, daily: !!job.daily, stars, misses, failed });
   if (failed) sfx.over(); else sfx.levelUp();
-  const next = JOBS.find((j) => j.id === job.id + 1);
+  const next = job.daily ? undefined : JOBS.find((j) => j.id === job.id + 1);
+  const shareDaily = async () => {
+    const text = `🚚 Tight Fit #${dayNumber()} · ${starsGlyph(stars)}\n${stageResults.map((r) => (r ? '🟩' : '🟥')).join('')}\n${location.origin}${location.pathname}`;
+    try { if (navigator.share) { await navigator.share({ text }); return; } await navigator.clipboard.writeText(text); } catch { /* cancelled */ }
+  };
   const card = h('div.overlay', {}, h('div.card', {},
     h('h2', {}, failed ? 'Job failed' : starsGlyph(stars)),
     h('p', {}, failed ? `${job.customer} is going to write a review.` : job.done),
     h('p.muted', {}, failed ? 'Every stage allows three tries. Try the job again.' : misses === 0 ? 'Every stage, first try.' : `${misses} ${misses === 1 ? 'retry' : 'retries'} along the way.`),
     h('div.row', {},
-      failed ? h('button.primary', { onclick: () => { leave(); card.remove(); void playJob(job); } }, 'Retry ↵')
-        : next ? h('button.primary', { onclick: () => { leave(); card.remove(); intro(next); } }, 'Next job ↵')
-          : h('button.primary', { onclick: () => { leave(); renderMap(); } }, 'Episode done ↵'),
+      job.daily ? h('button.primary', { onclick: shareDaily }, 'Share')
+        : failed ? h('button.primary', { onclick: () => { leave(); card.remove(); void playJob(job); } }, 'Retry ↵')
+          : next ? h('button.primary', { onclick: () => { leave(); card.remove(); intro(next); } }, 'Next job ↵')
+            : h('button.primary', { onclick: () => { leave(); renderMap(); } }, 'Episode done ↵'),
+      job.daily ? h('a.button', { href: '../' }, 'More games') : null,
       h('button', { onclick: () => { leave(); renderMap(); } }, 'Map'),
     ),
   ));

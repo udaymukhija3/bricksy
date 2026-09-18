@@ -55,6 +55,9 @@ orientation it was loaded), then the van takes a corner (rigid-body tilt).
 Three stars = every stage first try; a stage fails after three tries and the
 job restarts. Items and stages are seeded per job so every player gets the same
 ten jobs. Episode 1, *First Day*, ends with a boss job that chains four stages.
+Above the map sits **today's job**: one seeded chain (load → doorway →
+corner, sometimes two doorways), the same for everyone, once a day, with its
+own stars, share text and day streak; the hub shows it like the other dailies.
 `src/tightfit/model.ts` is pure and tested (loads, doorways, rigid-body
 corners); `stages.ts` renders; `jobs.ts` is the episode; `main.ts` is the map.
 

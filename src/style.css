@@ -284,3 +284,4 @@ table.curve th, table.curve td { padding: 3px 12px 3px 0; text-align: right; }
 table.curve th { color: var(--muted); font-weight: 500; }
 table.curve td:first-child, table.curve th:first-child { text-align: left; }
 @media (max-width: 640px) { .overlay.helpwrap { padding: 8px; } }
+.tf-daily { margin-bottom: 4px; }

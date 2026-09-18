@@ -8,15 +8,17 @@ import { GROUPS, TIGHT_FIT } from './games';
 import { dailyRecord, dayNumber, statsOf } from './run';
 
 const app = document.getElementById('app')!;
-const games = GROUPS.flatMap((g) => g.games);
+const games = [TIGHT_FIT, ...GROUPS.flatMap((g) => g.games)];
 
 function status(g: SketchDef) {
+  const rec = dailyRecord(g.id);
   if (g.id === 'tightfit') {
     let stars = 0;
     try { stars = Object.values(JSON.parse(localStorage.getItem('bricksy.tf.stars') ?? '{}') as Record<string, number>).reduce((a, b) => a + b, 0); } catch { /* none */ }
-    return h('span.today', {}, stars ? `★ ${stars}/30` : 'start the saga →');
+    const saga = stars ? ` · saga ★ ${stars}/30` : '';
+    if (rec?.done) return h('span.today.done', {}, `today's job ${rec.results.map((r) => (r ? '🟩' : '🟥')).join('')}${saga}`);
+    return h('span.today', {}, `today's job #${dayNumber()} →${saga}`);
   }
-  const rec = dailyRecord(g.id);
   const st = statsOf(g.id);
   if (rec?.done) return h('span.today.done', {}, `today ${rec.results.filter(Boolean).length}/${rec.results.length} `, h('span.grid', {}, rec.results.map((r) => (r ? '🟩' : '🟥')).join('')));
   if (rec) return h('span.today.partial', {}, `round ${rec.results.length + 1} in progress →`);

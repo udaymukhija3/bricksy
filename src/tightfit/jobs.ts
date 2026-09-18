@@ -11,6 +11,9 @@ export interface JobDef {
   color: number;
   stages: { type: StageType; d: number }[];
   boss?: boolean;
+  /** Seeds derive from this instead of the id (today's job uses the date). */
+  seedKey?: string;
+  daily?: boolean;
 }
 
 export const EPISODE = { id: 1, title: 'First Day', blurb: 'A van, a clipboard, and ten customers who all think their stuff will fit.' };
@@ -29,3 +32,25 @@ export const JOBS: JobDef[] = [
 ];
 
 export const STAGE_NAMES: Record<StageType, string> = { load: 'Load the van', doorway: 'The doorway', corner: 'The corner' };
+
+const DAILY_CUSTOMERS = ['Priya', 'The Duttas', 'Mr. Hale', 'Nadia', 'Sam', 'The Okafors', 'Leo', 'Grandma June', 'The twins', 'Marguerite', 'The Kowalskis', 'Ibrahim'];
+const DAILY_ITEMS: { item: string; color: number; line: string; done: string }[] = [
+  { item: 'sofa', color: 0xb56be0, line: '“The sofa. It’s a corner sofa. It has opinions.”', done: '“It’s facing the window. That’s where it goes.”' },
+  { item: 'wardrobe', color: 0x9a6b3c, line: '“Mind the mirror on the door.”', done: '“Not a scratch. I checked twice.”' },
+  { item: 'piano', color: 0x4a4e63, line: '“It was tuned yesterday. Keep it that way.”', done: '“Middle C is still middle C.”' },
+  { item: 'fridge', color: 0xb0bad4, line: '“Keep it upright or the compressor sulks.”', done: '“It hums. That’s the good hum.”' },
+  { item: 'drum kit', color: 0xe5484d, line: '“The neighbours are watching. Be quick.”', done: '“Quietest the drums have ever been.”' },
+  { item: 'aquarium', color: 0x2ec4b6, line: '“Empty. Still fragile. Still heavy.”', done: '“Glass all present. Fish arriving Tuesday.”' },
+  { item: 'bookshelf', color: 0x8b5e3c, line: '“Books stay in. That’s the deal.”', done: '“Alphabetical, still. Impressive.”' },
+  { item: 'armchair', color: 0x6b8fd6, line: '“Grandfather’s. Treat it like a relative.”', done: '“He’d have approved. Eventually.”' },
+];
+
+/** Today's job: one seeded chain of stages, the same for everyone that day. */
+export function dailyJob(dayNumber: number, rng: () => number): JobDef {
+  const c = DAILY_CUSTOMERS[Math.floor(rng() * DAILY_CUSTOMERS.length)];
+  const it = DAILY_ITEMS[Math.floor(rng() * DAILY_ITEMS.length)];
+  const cubes = rng() < 0.5 ? 4 : 5;
+  const stages: JobDef['stages'] = [{ type: 'load', d: 1 + Math.floor(rng() * 3) }, { type: 'doorway', d: 1 + Math.floor(rng() * 2) }, { type: 'corner', d: 0 }];
+  if (rng() < 0.3) stages.splice(2, 0, { type: 'doorway', d: 1 + Math.floor(rng() * 2) });
+  return { id: 0, customer: c, line: it.line, done: it.done, item: it.item, cubes, color: it.color, stages, seedKey: `daily${dayNumber}`, daily: true };
+}
