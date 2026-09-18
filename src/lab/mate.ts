@@ -7,7 +7,7 @@ import { SketchStage, cubeGroup, voxelMesh, panel, h, mulberry32, sleep, easeInO
 import type { SketchDef, MountCtx } from './types';
 import { Log } from '../log';
 import { Run } from '../run';
-import { makePuzzle, apply, isMate, allAttacks, kingSquares, spec, key, ACTIONS, actionLabel, type Puzzle, type State, type Action, type P } from './mate-model';
+import { makePuzzle, apply, isMate, allAttacks, kingSquares, kingReplies, applyKing, matingMoves, spec, key, ACTIONS, actionLabel, type Puzzle, type State, type Action, type P } from './mate-model';
 
 const same = (a: Action, b: Action) => JSON.stringify(a) === JSON.stringify(b);
 
@@ -15,7 +15,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   const log = new Log();
   const stage = new SketchStage(stageEl, { gizmo: true, ground: null });
   const run = new Run({ id: 'mate', name: 'Mate', icon: '♟️', dailyRounds: 8 }, hudEl, stageEl);
-  let puzzle!: Puzzle, state!: State, piece = 0, action: Action | null = null, busy = false, done = false;
+  let puzzle!: Puzzle, state!: State, piece = 0, action: Action | null = null, busy = false, done = false, ply = 1;
   const world = new THREE.Group();
   stage.scene.add(world);
   let groups: ReturnType<typeof cubeGroup>[] = [];
@@ -56,12 +56,15 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
       b.classList.toggle('picked', !!action && same(a, action));
     }
   }
-  function selectPiece(i: number) {
-    if (busy || done) return;
+  function highlightPiece(i: number) {
     piece = i;
-    action = null;
     groups.forEach((g, j) => { g.mats.base.emissive.set(j === i ? 0xffffff : 0x000000); g.mats.base.emissiveIntensity = 0.22; });
     renderChips();
+  }
+  function selectPiece(i: number) {
+    if (busy || done) return;
+    highlightPiece(i);
+    action = null;
     renderActions();
   }
   function pickAction(a: Action) {
@@ -112,15 +115,18 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   function newPuzzle() {
     puzzle = makePuzzle(spec(run.level), mulberry32(run.nextSeed()));
     state = { n: puzzle.n, king: puzzle.king, pieces: puzzle.pieces };
-    done = false; busy = false; action = null;
+    done = false; busy = false; action = null; ply = 1;
     marks.clear();
     build();
     selectPiece(0);
     commitB.disabled = false;
+    commitB.textContent = puzzle.depth === 2 ? 'Move 1 of 2 ↵' : 'Move ↵';
     P.message('');
     P.clearPost();
-    hintEl.textContent = `Blue tiles are attacked now. One move covers the king's cell and every neighbour.`;
-    log.push('present', { sketch: 'mate', mode: run.mode, level: run.level, n: puzzle.n, king: puzzle.king, pieces: puzzle.pieces });
+    hintEl.textContent = puzzle.depth === 2
+      ? `Mate in two: your move, the king steps to its safest square, your move. No single move mates now.`
+      : `Blue tiles are attacked now. One move covers the king's cell and every neighbour.`;
+    log.push('present', { sketch: 'mate', mode: run.mode, level: run.level, n: puzzle.n, king: puzzle.king, pieces: puzzle.pieces, depth: puzzle.depth });
   }
 
   function onClick(ev: MouseEvent) {
@@ -156,6 +162,21 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     stage.highlightAxis(null);
   }
 
+  /** The king's reply: the square that leaves you the fewest mating answers (ties: first). */
+  function kingReply(s: State): P {
+    const rs = kingReplies(s);
+    let best = rs[0], bestN = Infinity;
+    for (const r of rs) { const n = matingMoves(applyKing(s, r)).length; if (n < bestN) { best = r; bestN = n; } }
+    return best;
+  }
+  async function animateKing(to: P) {
+    const from = king.position.clone(), dest = new THREE.Vector3(to[0], 0, to[1]);
+    if (from.distanceTo(dest) < 1e-6) { await stage.tween(300, (t) => { king.position.y = Math.sin(t * Math.PI) * 0.25; }); king.position.y = 0; return; }
+    run.sfx.click();
+    await stage.tween(420, (t) => { king.position.lerpVectors(from, dest, easeInOut(t)); king.position.y = Math.sin(t * Math.PI) * 0.5; });
+    king.position.copy(dest);
+  }
+
   function showVerdict(mate: boolean) {
     marks.clear();
     const att = allAttacks(state);
@@ -173,14 +194,35 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     commitB.disabled = true;
     renderActions();
     const mate = isMate(next);
-    const isAnswer = piece === puzzle.answer.piece && same(action, puzzle.answer.action);
-    log.push('result', { sketch: 'mate', piece, action, ok: mate, isAnswer, answer: puzzle.answer });
+    if (puzzle.depth === 2 && ply === 1 && !mate) {
+      // First of two: the move plays, then the king answers, then the board is yours again.
+      const isAnswer = piece === puzzle.answer.piece && same(action, puzzle.answer.action);
+      log.push('commit', { sketch: 'mate', ply: 1, piece, action, isAnswer });
+      await animate(piece, action, next);
+      await sleep(250);
+      const reply = kingReply(state);
+      const moved = key(reply) !== key(state.king);
+      await animateKing(reply);
+      state = applyKing(state, reply);
+      syncScene();
+      ply = 2;
+      action = null;
+      busy = false;
+      commitB.disabled = false;
+      commitB.textContent = 'Move 2 of 2 ↵';
+      renderActions();
+      P.message(moved ? `The king stepped to ${key(reply)}. Your second move.` : 'The king stays put. Your second move.');
+      return;
+    }
+    const isAnswer = ply === 1 ? piece === puzzle.answer.piece && same(action, puzzle.answer.action) : (() => { const f = puzzle.followUps?.[key(state.king)]; return !!f && f.piece === piece && same(action, f.action); })();
+    log.push('result', { sketch: 'mate', ply, piece, action, ok: mate, isAnswer, answer: puzzle.answer });
     await animate(piece, action, next);
     showVerdict(mate);
     done = true; busy = false;
     mate ? run.hit() : run.miss();
     const safe = kingSquares(state).filter((p) => !allAttacks(state).has(key(p))).length + (allAttacks(state).has(key(state.king)) ? 0 : 1);
-    P.message(mate ? 'Mate. The king has nowhere to go.' : `Not mate — ${safe} safe square${safe === 1 ? '' : 's'} left (green).`, mate ? 'ok' : 'bad');
+    const lost = puzzle.depth === 2 && !mate && !matingMoves({ ...state }).length && ply === 2 ? ' After your first move no mate was possible.' : '';
+    P.message(mate ? 'Mate. The king has nowhere to go.' : `Not mate — ${safe} safe square${safe === 1 ? '' : 's'} left (green).${lost}`, mate ? 'ok' : 'bad');
     if (run.over) { run.showOver(newPuzzle); return; }
     P.post([{ label: 'Next ↵', primary: true, onClick: newPuzzle }, ...(mate ? [] : [{ label: 'Show answer', onClick: showAnswer }])]);
   }
@@ -192,14 +234,28 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     marks.clear();
     state = { n: puzzle.n, king: puzzle.king, pieces: puzzle.pieces };
     build();
-    selectPiece(puzzle.answer.piece);
+    highlightPiece(puzzle.answer.piece);
     await sleep(400);
     const next = apply(state, puzzle.answer.piece, puzzle.answer.action)!;
     await animate(puzzle.answer.piece, puzzle.answer.action, next);
+    let text = `Answer: piece ${puzzle.answer.piece + 1}, ${actionLabel(puzzle.answer.action)}.`;
+    if (puzzle.depth === 2) {
+      await sleep(250);
+      const reply = kingReply(state);
+      await animateKing(reply);
+      state = applyKing(state, reply);
+      syncScene();
+      const f = puzzle.followUps![key(reply)];
+      highlightPiece(f.piece);
+      await sleep(300);
+      const last = apply(state, f.piece, f.action)!;
+      await animate(f.piece, f.action, last);
+      text += ` The king goes to ${key(reply)}; then piece ${f.piece + 1}, ${actionLabel(f.action)}.`;
+    }
     showVerdict(true);
     void pulseMats(stage.ticker, [groups[puzzle.answer.piece].mats.base], COLOR_OK);
     busy = false;
-    P.message(`Answer: piece ${puzzle.answer.piece + 1}, ${actionLabel(puzzle.answer.action)}.`, 'ok');
+    P.message(text, 'ok');
     log.push('reveal', { sketch: 'mate' });
     P.post([{ label: 'Next ↵', primary: true, onClick: newPuzzle }]);
   }

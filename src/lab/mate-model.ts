@@ -26,7 +26,13 @@ export const SHAPES: Record<string, Cell[]> = {
 
 export interface Piece { cells: Cell[]; anchor: P }
 export interface State { n: number; king: P; pieces: Piece[] }
-export interface Puzzle extends State { answer: { piece: number; action: Action } }
+export interface Answer { piece: number; action: Action }
+export interface Puzzle extends State {
+  answer: Answer;
+  /** 1: the answer mates. 2: the answer forces mate — for every king reply (by key) a mating follow-up. */
+  depth: 1 | 2;
+  followUps?: Record<string, Answer>;
+}
 
 const onBoard = (n: number, p: P) => p[0] >= 0 && p[1] >= 0 && p[0] < n && p[1] < n;
 
@@ -86,27 +92,57 @@ export function apply(s: State, i: number, a: Action): State | null {
   return valid(out) ? out : null;
 }
 
-export function matingMoves(s: State): { piece: number; action: Action }[] {
-  const out: { piece: number; action: Action }[] = [];
+export function matingMoves(s: State): Answer[] {
+  const out: Answer[] = [];
   s.pieces.forEach((_, i) => { for (const a of ACTIONS) { const t = apply(s, i, a); if (t && isMate(t)) out.push({ piece: i, action: a }); } });
   return out;
 }
 
-export interface Spec { n: number; pieces: number; answer: 'any' | 'turn' | 'tilt'; shapes: string[] }
-/** Difficulty by level: the answer must be a turn, then a turn about a horizontal axis (the shadow changes shape), then three pieces. */
+/** Where the king may go: stay if its cell is safe, or step to any unattacked free square. */
+export function kingReplies(s: State): P[] {
+  const att = allAttacks(s);
+  const out: P[] = [];
+  if (!att.has(key(s.king))) out.push(s.king);
+  for (const p of kingSquares(s)) if (!att.has(key(p))) out.push(p);
+  return out;
+}
+export const applyKing = (s: State, to: P): State => ({ ...s, king: to });
+
+/** Every first move after which each king reply still has a mating answer, with those answers. */
+export function forcingMoves(s: State, limit = 2): { first: Answer; followUps: Record<string, Answer> }[] {
+  const out: { first: Answer; followUps: Record<string, Answer> }[] = [];
+  for (let i = 0; i < s.pieces.length && out.length < limit; i++) for (const a of ACTIONS) {
+    const t = apply(s, i, a);
+    if (!t || isMate(t)) continue;
+    const followUps: Record<string, Answer> = {};
+    let ok = true;
+    for (const r of kingReplies(t)) {
+      const m = matingMoves(applyKing(t, r))[0];
+      if (!m) { ok = false; break; }
+      followUps[key(r)] = m;
+    }
+    if (ok) { out.push({ first: { piece: i, action: a }, followUps }); if (out.length >= limit) break; }
+  }
+  return out;
+}
+
+export interface Spec { n: number; pieces: number; answer: 'any' | 'turn' | 'tilt'; shapes: string[]; depth: 1 | 2 }
+/** Difficulty by level: the answer must be a turn, then a turn about a horizontal axis (the shadow changes shape), then three pieces, then mate in two (endless only). */
 export function spec(level: number): Spec {
-  if (level < 2) return { n: 5, pieces: 2, answer: 'any', shapes: ['L3', 'I3', 'T4', 'L4'] };
-  if (level < 4) return { n: 5, pieces: 2, answer: 'turn', shapes: ['L3', 'T4', 'L4', 'S4'] };
-  if (level < 6) return { n: 6, pieces: 2, answer: 'tilt', shapes: ['L3', 'T4', 'L4', 'S4', 'Y4'] };
-  return { n: 6, pieces: 3, answer: 'tilt', shapes: ['L3', 'T4', 'L4', 'S4', 'Y4'] };
+  if (level < 2) return { n: 5, pieces: 2, answer: 'any', shapes: ['L3', 'I3', 'T4', 'L4'], depth: 1 };
+  if (level < 4) return { n: 5, pieces: 2, answer: 'turn', shapes: ['L3', 'T4', 'L4', 'S4'], depth: 1 };
+  if (level < 6) return { n: 6, pieces: 2, answer: 'tilt', shapes: ['L3', 'T4', 'L4', 'S4', 'Y4'], depth: 1 };
+  if (level < 8) return { n: 6, pieces: 3, answer: 'tilt', shapes: ['L3', 'T4', 'L4', 'S4', 'Y4'], depth: 1 };
+  return { n: 6, pieces: 3, answer: 'turn', shapes: ['L3', 'T4', 'L4', 'S4', 'Y4'], depth: 2 };
 }
 
 const fits = (sp: Spec, a: Action) => sp.answer === 'any' || (a.type === 'turn' && (sp.answer === 'turn' || a.move.axis !== 'y'));
 
 /** Deterministic for a seed; if the strict answer kind cannot be found, relax it rather than fail a daily. */
 export function makePuzzle(sp: Spec, rng: () => number): Puzzle {
-  const p = search(sp, rng, 12000);
+  const p = search(sp, rng, sp.depth === 2 ? 3000 : 12000);
   if (p) return p;
+  if (sp.depth === 2) return makePuzzle({ ...sp, depth: 1, answer: 'tilt' }, rng);
   if (sp.answer === 'tilt') return makePuzzle({ ...sp, answer: 'turn' }, rng);
   if (sp.answer === 'turn') return makePuzzle({ ...sp, answer: 'any' }, rng);
   throw new Error('no puzzle');
@@ -133,8 +169,15 @@ function search(sp: Spec, rng: () => number, tries: number): Puzzle | null {
     const s: State = { n, king, pieces };
     if (!valid(s) || isMate(s)) continue;
     const mates = matingMoves(s);
+    if (sp.depth === 2) {
+      // No mate in one (else the answer is ambiguous) and exactly one forcing first move.
+      if (mates.length) continue;
+      const f = forcingMoves(s, 2);
+      if (f.length !== 1 || !fits(sp, f[0].first.action)) continue;
+      return { ...s, answer: f[0].first, depth: 2, followUps: f[0].followUps };
+    }
     if (mates.length !== 1 || !fits(sp, mates[0].action)) continue;
-    return { ...s, answer: mates[0] };
+    return { ...s, answer: mates[0], depth: 1 };
   }
   return null;
 }

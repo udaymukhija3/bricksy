@@ -22,6 +22,8 @@ export const today = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth
 /** Daily #1 was 2026-09-18; the number is the same for everyone, like a crossword's. */
 export const EPOCH = Date.UTC(2026, 8, 18);
 export const dayNumber = (d = new Date()) => Math.floor((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - EPOCH) / 86400000) + 1;
+/** Dev only: `?level=N` pins the difficulty so high levels can be checked without earning them. */
+const DEV_LEVEL = import.meta.env.DEV && new URLSearchParams(location.search).has('level') ? Number(new URLSearchParams(location.search).get('level')) : null;
 const msToMidnight = () => { const n = new Date(); const m = new Date(n); m.setHours(24, 0, 0, 0); return m.getTime() - n.getTime(); };
 
 function hash(s: string) {
@@ -79,7 +81,7 @@ export class Run {
 
   get dailyRounds() { return this.opts.dailyRounds ?? 8; }
   /** Difficulty input: round index in a daily, score in endless — so a daily is the same for everyone. */
-  get level() { return this.mode === 'daily' ? this.round : this.score; }
+  get level() { return DEV_LEVEL ?? (this.mode === 'daily' ? this.round : this.score); }
   get over() { return this.mode === 'daily' ? this.round >= this.dailyRounds : this.lives <= 0; }
   get dailyDone() { return dailyRecord(this.opts.id)?.done ?? false; }
   get stats() { return statsOf(this.opts.id); }

@@ -132,7 +132,7 @@ without it?"*
 | **Gears** | motion through a system | direction, then speed |
 | **Shove** | planning under irreversible moves | plans of 2–4 moves execute without pause and stop at the first blocked move; no undo; budget par + 3; levels are generated from the reachable state space so par is exact and later levels need a turn |
 | **Wayfind** | perspective taking · mental maps | mazes get loops so wall-following is a bad strategy; a hit is a walk with *no* wrong turn; later the start heading no longer matches the map's up, so two frames must be aligned |
-| **Mate** | multi-step transformation lookahead | attack = the piece's shadow minus its anchor; the post-move shadow is never previewed; puzzles are brute-forced to a unique answer, forced to be a turn, then a turn about a horizontal axis (the shadow changes shape) |
+| **Mate** | multi-step transformation lookahead | attack = the piece's shadow minus its anchor; the post-move shadow is never previewed; puzzles are brute-forced to a unique answer, forced to be a turn, then a turn about a horizontal axis (the shadow changes shape); from level 8 (endless) it is mate in two — no single move mates, the king steps to the square that leaves you the fewest answers, and every reply must have one |
 
 Shared kit: `src/lab/kit.ts` (single-view stage, voxel meshes, turn queue,
 layer builder, grid picker, choices). Pure, tested models sit next to the
@@ -201,6 +201,8 @@ Hovering a turn button lights that axis in the gizmo and flips its arrow for −
 - Removing the gizmo (axis convention is prerequisite knowledge, not the skill).
 - Translation / multiple candidate holes in pack (would add placement, diluting rotation).
 - The transfer test: static drawings of the same problems, no 3D.
-- Two-crate rooms in Shove, an opponent in Mate, more than three parts in
-  Assemble: each game ships with the smallest ruleset that makes its skill
-  necessary; the dials above are where difficulty grows.
+- Two-crate rooms in Shove and a full opponent in Mate (mate in two is the
+  first step toward one): each game ships with the smallest ruleset that
+  makes its skill necessary; the dials above are where difficulty grows.
+- In dev, `?level=N` on any game page pins the difficulty so late levels can
+  be checked without earning them.

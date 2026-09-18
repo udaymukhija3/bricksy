@@ -1,5 +1,5 @@
 // Run with: npm test
-import { attacks, isMate, apply, matingMoves, makePuzzle, spec, valid, worldCells, SHAPES, key, type State } from './mate-model.ts';
+import { attacks, isMate, apply, matingMoves, makePuzzle, spec, valid, worldCells, kingReplies, applyKing, forcingMoves, SHAPES, key, type State } from './mate-model.ts';
 
 let failures = 0;
 const check = (name: string, ok: boolean) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}`); if (!ok) failures++; };
@@ -48,6 +48,22 @@ for (let seed = 1; seed <= 25; seed++) {
 check(`${n} puzzles: not mate yet, exactly one mating move, it is the recorded answer (${bad} bad)`, bad === 0);
 check(`every piece is a connected polycube with its pivot at the origin (${split} broken)`, split === 0);
 check(`answer kind follows the spec: turn / horizontal-axis turn (${kind} wrong)`, kind === 0);
+// Mate in two: no mate in one, one forcing first move, and every king reply has a recorded mating follow-up that mates.
+let two = 0, twoBad = 0, fell = 0;
+for (let seed = 1; seed <= 12; seed++) {
+  const p = makePuzzle(spec(8), mulberry32(seed * 31));
+  if (p.depth !== 2) { fell++; continue; }
+  two++;
+  if (matingMoves(p).length || forcingMoves(p, 3).length !== 1) twoBad++;
+  const t = apply(p, p.answer.piece, p.answer.action)!;
+  for (const r of kingReplies(t)) {
+    const f = p.followUps![key(r)];
+    const u = f && apply(applyKing(t, r), f.piece, f.action);
+    if (!u || !isMate(u)) twoBad++;
+  }
+}
+check(`${two} mate-in-two puzzles: unique forcing move, every reply mated by its follow-up (${twoBad} bad, ${fell} fell back to depth 1)`, twoBad === 0 && two > 0);
+check('a king in check must move: staying is not a reply', kingReplies({ n: 5, king: [0, 0], pieces: [{ cells: [[0, 0, 0], [-1, 0, 0]], anchor: [1, 0] }] }).every((p) => key(p) !== '0,0'));
 const x = makePuzzle(spec(4), mulberry32(2)), y = makePuzzle(spec(4), mulberry32(2));
 check('same seed → same puzzle', JSON.stringify(x) === JSON.stringify(y));
 if (failures) throw new Error(`${failures} check(s) failed`);
