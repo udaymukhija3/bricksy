@@ -15,6 +15,8 @@ for (let seed = 1; seed <= 40; seed++) {
     const m = generate(sp.rooms, sp.loops, rng, sp.heading);
     n++;
     const open = new Set(m.open);
+    // The start heading faces an open cell.
+    if (!open.has(key([m.start[0] + HEAD_VEC[m.heading][0], m.start[1] + HEAD_VEC[m.heading][1]]))) bad++;
     // Every room reachable from the goal; start and goal are rooms; start ≠ goal.
     const rooms = m.rooms * m.rooms;
     const reached = Object.keys(m.dist).filter((k) => k.split(',').every((v) => Number(v) % 2 === 1)).length;

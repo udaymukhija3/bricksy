@@ -8,6 +8,8 @@ import { STAGES, stageForScore, makePackPuzzle, land, type PackPuzzle, type Stag
 import { MOVES, moveLabel, applyMoves, type Move, type Axis } from './polycube';
 import { Log } from './log';
 import { Run } from './run';
+import { helpCard } from './lab/frame';
+import { PACK } from './games';
 import { COLOR_OK, COLOR_BAD } from './render-common';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -50,6 +52,20 @@ let tFirstInput = 0;
 const stageName = document.createElement('span');
 stageName.className = 'pill';
 $('hud').append(stageName);
+// Help: how to play, why this game, your learning curve — same card as the other games.
+{
+  const help = document.createElement('div');
+  help.className = 'overlay helpwrap';
+  help.hidden = true;
+  $('stage').append(help);
+  const close = () => { help.hidden = true; help.replaceChildren(); };
+  const btn = document.createElement('button');
+  btn.className = 'icon help-btn';
+  btn.title = 'How to play, why this game, your progress';
+  btn.textContent = '?';
+  btn.onclick = () => { if (help.hidden) { help.replaceChildren(helpCard(PACK, close)); help.hidden = false; } else close(); };
+  $('hud').after(btn);
+}
 const el = {
   stageName, hint: $('hint'),
   queue: $('queue'), moves: $('moves'),

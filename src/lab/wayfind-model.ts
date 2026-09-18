@@ -68,7 +68,9 @@ export function generate(rooms: number, loops: number, rng: () => number, headin
   if (cands.some(interior) && rooms >= 5) cands = cands.filter(interior);
   const goal = cands[Math.floor(rng() * cands.length)];
   const dist = bfs(open, goal);
-  const heading = (headingMode === 'random' ? Math.floor(rng() * 4) : 0) as Heading;
+  // Face a corridor, never a wall: north if open (aligned levels), else/or a random open direction.
+  const openHeadings = [0, 1, 2, 3].filter((hd) => open.has(key(add(start, HEAD_VEC[hd])))) as Heading[];
+  const heading = headingMode === 'random' ? openHeadings[Math.floor(rng() * openHeadings.length)] : (openHeadings.includes(0) ? 0 : openHeadings[0]);
   const m: Maze = { rooms, size, open: [...open], start, goal, heading, dist, par: 0 };
   return { ...m, par: shortestWalk(m).length };
 }
