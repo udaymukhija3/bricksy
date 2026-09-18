@@ -58,6 +58,9 @@ ten jobs. Episode 1, *First Day*, ends with a boss job that chains four stages.
 Above the map sits **today's job**: one seeded chain (load → doorway →
 corner, sometimes two doorways), the same for everyone, once a day, with its
 own stars, share text and day streak; the hub shows it like the other dailies.
+Beside it, the **endless shift**: job after job, each a little worse (more
+cubes, deeper loads, a second doorway), until a stage beats you; best is
+jobs delivered.
 `src/tightfit/model.ts` is pure and tested (loads, doorways, rigid-body
 corners); `stages.ts` renders; `jobs.ts` is the episode; `main.ts` is the map.
 

@@ -14,6 +14,8 @@ export interface JobDef {
   /** Seeds derive from this instead of the id (today's job uses the date). */
   seedKey?: string;
   daily?: boolean;
+  /** Endless shift: job k of a run that ends at the first failed stage. */
+  shift?: number;
 }
 
 export const EPISODE = { id: 1, title: 'First Day', blurb: 'A van, a clipboard, and ten customers who all think their stuff will fit.' };
@@ -53,4 +55,15 @@ export function dailyJob(dayNumber: number, rng: () => number): JobDef {
   const stages: JobDef['stages'] = [{ type: 'load', d: 1 + Math.floor(rng() * 3) }, { type: 'doorway', d: 1 + Math.floor(rng() * 2) }, { type: 'corner', d: 0 }];
   if (rng() < 0.3) stages.splice(2, 0, { type: 'doorway', d: 1 + Math.floor(rng() * 2) });
   return { id: 0, customer: c, line: it.line, done: it.done, item: it.item, cubes, color: it.color, stages, seedKey: `daily${dayNumber}`, daily: true };
+}
+
+/** Shift job k: like a daily job, harder as the shift goes on (more cubes, longer chains, deeper loads). */
+export function shiftJob(k: number, rng: () => number): JobDef {
+  const j = dailyJob(0, rng);
+  const cubes = k < 2 ? 4 : 5;
+  const stages: JobDef['stages'] = [{ type: 'load', d: Math.min(3, 1 + Math.floor(k / 2) + Math.floor(rng() * 2)) }, { type: 'doorway', d: k < 3 ? 1 : 2 }];
+  if (k >= 2 && rng() < 0.5) stages.push({ type: 'doorway', d: 1 + Math.floor(rng() * 2) });
+  stages.push({ type: 'corner', d: 0 });
+  if (k >= 5) stages.push({ type: 'doorway', d: 2 });
+  return { ...j, cubes, stages, daily: false, shift: k, seedKey: `shift${Math.floor(rng() * 1e9)}` };
 }

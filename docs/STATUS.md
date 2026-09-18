@@ -8,7 +8,7 @@ with controls, *why this game* and the player's learning curve · phone layout �
 
 | Game | Product bar | Curve (daily → endless) | Miss teaches | Verified | Thin spots / next dial |
 | --- | --- | --- | --- | --- | --- |
-| 🚚 Tight Fit | saga + today's job (stars, share, day streak) | 10 jobs, boss chains 4 stages; daily job varies chain | retry within 3 tries; job restarts | map, daily job, load stage | no endless; corner stage never scales |
+| 🚚 Tight Fit | saga + today's job + endless shift | 10 jobs, boss chains 4 stages; daily job varies chain; shift jobs escalate | retry within 3 tries; job restarts; shift ends | map, daily job, shift job 1 | corner stage never scales |
 | 📦 Pack | ✓ (moved onto the run loop today) | 6 stages by score; daily climbs 2× | lift out & retry, replay, skip | full daily played, lock, resume | opaque molds only at score 16 |
 | 🧱 Smuggle | ✓ (+ daily lock fixed today; a run now survives a mid-run reload, bonk included) | 5→6 cubes, 4th wall at L6 | *Show a fit* (BFS) | bonk → fit → through; pass → reload → resume; bonk → reload → fit | no 5th wall; par not shown per wall |
 | 🪞 Mirror | ✓ | 5→8 cubes; three-way answer from L2 | uncovered cells shown red; fit over rotations + translations | rot/other rounds played | nothing beyond three kinds |
