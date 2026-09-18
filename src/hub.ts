@@ -6,7 +6,8 @@ import './guard.ts';
 import { h } from './lab/kit.ts';
 import type { SketchDef } from './lab/types.ts';
 import { GROUPS, TIGHT_FIT } from './games.ts';
-import { dailyRecord, dayNumber, statsOf } from './run.ts';
+import { dailyRecord, dayNumber, dateOfDay, statsOf, today } from './run.ts';
+import { toast } from './lab/kit.ts';
 import { Log } from './log.ts';
 
 const app = document.getElementById('app')!;
@@ -35,6 +36,23 @@ const card = (g: SketchDef, flag = false) => h('a.card' + (flag ? '.flag' : ''),
 );
 
 const done = games.filter((g) => dailyRecord(g.id)?.done).length;
+// Today's rounds across every game, and one share text for the whole day.
+const todayRecs = games.map((g) => ({ g, r: dailyRecord(g.id) })).filter((x) => x.r?.done);
+const hits = todayRecs.reduce((a, x) => a + x.r!.results.filter(Boolean).length, 0);
+const rounds = todayRecs.reduce((a, x) => a + x.r!.results.length, 0);
+const shareDay = async () => {
+  const lines = todayRecs.map((x) => `${x.g.icon ?? ''} ${x.g.title} ${x.r!.results.filter(Boolean).length}/${x.r!.results.length} ${x.r!.results.map((r) => (r ? '🟩' : '🟥')).join('')}`);
+  const text = `bricksy #${dayNumber()} · ${done}/${games.length} played · ${hits}/${rounds}\n${lines.join('\n')}\n${location.origin}${location.pathname}`;
+  try { if (navigator.share) { await navigator.share({ text }); return; } await navigator.clipboard.writeText(text); toast('Copied to clipboard'); } catch { /* cancelled */ }
+};
+// The last seven days: a dot per day, filled when any daily was played that day.
+const week = h('div.week', {}, ...Array.from({ length: 7 }, (_, i) => {
+  const n = dayNumber() - 6 + i;
+  if (n < 1) return h('span.day.void');
+  const date = dateOfDay(n);
+  const played = games.filter((g) => dailyRecord(g.id, date)?.done).length;
+  return h('span.day' + (played ? '.on' : '') + (date === today() ? '.today' : ''), { title: `#${n} · ${date} · ${played} played` }, played ? String(played) : '');
+}));
 const bestStreak = Math.max(0, ...games.map((g) => statsOf(g.id).dayStreak));
 // The one call to action: the next daily you haven't played (in progress first), or nothing left today.
 const nextUp = games.find((g) => { const r = dailyRecord(g.id); return r && !r.done; }) ?? games.find((g) => !dailyRecord(g.id)?.done);
@@ -47,7 +65,7 @@ app.replaceChildren(
     bestStreak ? h('span.stat', {}, 'day streak ', h('b', {}, String(bestStreak))) : null,
     h('a', { href: 'lab.html' }, 'lab ↗'))),
   h('p#instructions', {}, 'Small games where you have to see it in your head first. ', h('b', {}, 'Predict, commit, watch reality.'), ' Every game has a daily puzzle — the same for everyone, once a day — and an endless mode.'),
-  h('div.ctarow', {}, cta),
+  h('div.ctarow', {}, cta, todayRecs.length ? h('button', { onclick: shareDay, title: 'One text with every game you played today' }, `Share today · ${hits}/${rounds}`) : null, week),
   h('div.hub', {}, card(TIGHT_FIT, true)),
   ...GROUPS.flatMap((grp) => [
     h('div.group', {}, h('h2', {}, grp.title), h('p.muted', {}, grp.blurb)),
