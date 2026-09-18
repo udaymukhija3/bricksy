@@ -114,22 +114,22 @@ export function shortestWalk(m: Maze): Rel[] {
   return out;
 }
 
-export interface Spec { rooms: number; loops: number; showMs: number; heading: 'north' | 'random'; cut: boolean }
+export interface Spec { rooms: number; loops: number; showMs: number; heading: 'north' | 'random'; cut: boolean; /** Wrong turns a walk may contain and still count as a hit (bigger mazes forgive one). */ tolerance: number }
 /** Difficulty by level: bigger mazes, less time, then a start heading that no longer matches the map's up. */
 export function spec(level: number): Spec {
   const t: Spec[] = [
-    { rooms: 4, loops: 0, showMs: 4000, heading: 'north', cut: false },
-    { rooms: 4, loops: 1, showMs: 4000, heading: 'north', cut: false },
-    { rooms: 5, loops: 1, showMs: 4000, heading: 'north', cut: true },
-    { rooms: 5, loops: 1, showMs: 3500, heading: 'random', cut: true },
-    { rooms: 5, loops: 2, showMs: 3500, heading: 'random', cut: true },
-    { rooms: 6, loops: 2, showMs: 3000, heading: 'random', cut: true },
-    { rooms: 6, loops: 3, showMs: 3000, heading: 'random', cut: true },
-    { rooms: 7, loops: 3, showMs: 3000, heading: 'random', cut: true },
-    { rooms: 7, loops: 4, showMs: 2500, heading: 'random', cut: true },
-    { rooms: 8, loops: 4, showMs: 3000, heading: 'random', cut: true },
-    { rooms: 8, loops: 5, showMs: 2500, heading: 'random', cut: true },
-    { rooms: 9, loops: 5, showMs: 3000, heading: 'random', cut: true },
+    { rooms: 4, loops: 0, showMs: 4000, heading: 'north', cut: false, tolerance: 0 },
+    { rooms: 4, loops: 1, showMs: 4000, heading: 'north', cut: false, tolerance: 0 },
+    { rooms: 5, loops: 1, showMs: 4000, heading: 'north', cut: true, tolerance: 0 },
+    { rooms: 5, loops: 1, showMs: 3500, heading: 'random', cut: true, tolerance: 0 },
+    { rooms: 5, loops: 2, showMs: 3500, heading: 'random', cut: true, tolerance: 0 },
+    { rooms: 6, loops: 2, showMs: 3000, heading: 'random', cut: true, tolerance: 0 },
+    { rooms: 6, loops: 3, showMs: 3000, heading: 'random', cut: true, tolerance: 0 },
+    { rooms: 7, loops: 3, showMs: 3000, heading: 'random', cut: true, tolerance: 0 },
+    { rooms: 7, loops: 4, showMs: 2500, heading: 'random', cut: true, tolerance: 0 },
+    { rooms: 8, loops: 4, showMs: 3000, heading: 'random', cut: true, tolerance: 1 },
+    { rooms: 8, loops: 5, showMs: 2500, heading: 'random', cut: true, tolerance: 1 },
+    { rooms: 9, loops: 5, showMs: 3000, heading: 'random', cut: true, tolerance: 1 },
   ];
   return t[Math.min(level, t.length - 1)];
 }

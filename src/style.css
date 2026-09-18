@@ -290,3 +290,9 @@ table.curve td:first-child, table.curve th:first-child { text-align: left; }
 @media (max-width: 640px) { .overlay.helpwrap { padding: 8px; } }
 .tf-daily { margin-bottom: 4px; }
 .grid .cell.void { opacity: 0.18; }
+.ctarow { display: flex; }
+a.button.primary { background: var(--accent); color: #1a1200; border-color: transparent; font-weight: 700; }
+a.button.primary:hover { background: #ffb63a; }
+.cta { padding: 10px 16px; font-size: 15px; }
+.stat.done { color: var(--y); }
+.hub .today .muted { color: var(--muted); }

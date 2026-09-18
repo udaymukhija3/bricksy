@@ -19,7 +19,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   const log = new Log();
   const stage = new SketchStage(stageEl, { ground: null, fov: 30 });
   const run = new Run({ id: 'wayfind', name: 'Wayfind', icon: '🧭', dailyRounds: 6 }, hudEl, stageEl);
-  let m!: Maze, cur!: P, heading!: Heading, decisions = 0, wrong = 0, gen = 0, mode: 'top' | 'fp' = 'top', busy = true, done = false;
+  let m!: Maze, cur!: P, heading!: Heading, decisions = 0, wrong = 0, gen = 0, mode: 'top' | 'fp' = 'top', busy = true, done = false, tolerance = 0;
   const world = new THREE.Group();
   stage.scene.add(world);
   const overlay = h('div.overlay-text.corner');
@@ -93,6 +93,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     const my = ++gen;
     const sp = spec(run.level);
     m = generate(sp.rooms, sp.loops, mulberry32(run.nextSeed()), sp.heading);
+    tolerance = sp.tolerance;
     cur = m.start; heading = m.heading; yaw = yawOf(heading);
     decisions = 0; wrong = 0; busy = true; done = false;
     build();
@@ -103,7 +104,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     P.message('');
     P.clearPost();
     renderStatus();
-    hintEl.textContent = `${sp.showMs / 1000}s to memorise. Blue arrow: you and the way you face. Green: the goal.${sp.heading === 'random' ? ' The map is north-up; you are not.' : ''}`;
+    hintEl.textContent = `${sp.showMs / 1000}s to memorise. Blue arrow: you and the way you face. Green: the goal.${sp.heading === 'random' ? ' The map is north-up; you are not.' : ''}${sp.tolerance ? ' One wrong turn is forgiven at this size.' : ''}`;
     log.push('present', { sketch: 'wayfind', mode: run.mode, level: run.level, maze: { rooms: m.rooms, loops: sp.loops, open: m.open, start: m.start, goal: m.goal, heading: m.heading, par: m.par }, showMs: sp.showMs, cut: sp.cut });
     for (let ms = sp.showMs; ms > 0; ms -= 100) { overlay.textContent = (ms / 1000).toFixed(1); await sleep(100); if (gen !== my) return; }
     overlay.textContent = '';
@@ -169,7 +170,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
       from = p;
     }
     cur = w.end; heading = w.heading;
-    if (w.atGoal) return finish(wrong === 0, '');
+    if (w.atGoal) return finish(wrong <= tolerance, '');
     if (decisions >= m.par * 3 + 4) return finish(false, 'Lost — too many turns.');
     busy = false;
     present(w.deadEnd);
@@ -190,7 +191,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     giveUpB.disabled = true;
     log.push('result', { sketch: 'wayfind', ok, decisions, wrong, par: m.par, why });
     ok ? run.hit() : run.miss();
-    P.message(ok ? `Goal, no wrong turns (${decisions} decisions, par ${m.par}).` : `${why} ${wrong} wrong turn${wrong === 1 ? '' : 's'} in ${decisions} decisions (par ${m.par}). Your trail is on the map.`, ok ? 'ok' : 'bad');
+    P.message(ok ? (wrong ? `Goal with ${wrong} wrong turn forgiven in a maze this size (${decisions} decisions, par ${m.par}).` : `Goal, no wrong turns (${decisions} decisions, par ${m.par}).`) : `${why} ${wrong} wrong turn${wrong === 1 ? '' : 's'} in ${decisions} decisions (par ${m.par}). Your trail is on the map.`, ok ? 'ok' : 'bad');
     // Rise back to the map with the trail drawn: reality's account of the walk.
     trail.visible = true;
     startMarker.visible = true;

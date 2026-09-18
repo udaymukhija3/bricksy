@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://udaymukhija3.github.io/bricksy/sitemap.xml
