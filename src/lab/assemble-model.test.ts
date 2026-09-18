@@ -16,7 +16,7 @@ const connected = (cells: Cell[]) => {
 let n = 0, bad = 0, trivial = 0, uncut = 0;
 for (let seed = 1; seed <= 40; seed++) {
   const rng = mulberry32(seed);
-  for (const level of [0, 1, 2, 3, 4, 6, 7]) {
+  for (const level of [0, 1, 2, 3, 4, 6, 7, 10, 12]) {
     const sp = spec(level);
     const p = makePuzzle(sp, rng);
     n++;

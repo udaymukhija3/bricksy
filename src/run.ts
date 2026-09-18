@@ -246,6 +246,7 @@ export class Run {
     const next = h('p.muted.next');
     const tick = () => { const ms = msToMidnight(); const s = Math.floor(ms / 1000); next.textContent = `Next daily in ${String(Math.floor(s / 3600)).padStart(2, '0')}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; };
     const again2 = () => { this.hideOver(); if (daily) this.setMode('endless'); else { this.reset(); again(); } };
+    const more = h('a.button', { href: import.meta.env.BASE_URL }, 'More games');
     this.overlay.replaceChildren(h('div.card', {},
       h('h2', {}, title),
       h('p.results', {}, this.results.map((r) => (r ? '🟩' : '🟥')).join('')),
@@ -254,9 +255,20 @@ export class Run {
       h('div.row', {},
         h('button.primary', { onclick: () => this.share() }, 'Share'),
         h('button', { onclick: again2 }, daily ? 'Practice (endless) ↵' : 'Play again ↵'),
-        h('a.button', { href: import.meta.env.BASE_URL }, 'More games'),
+        more,
       ),
     ));
+    // A finished daily hands over to the next game not yet played today. The roster is loaded
+    // lazily so this module stays light and free of a cycle with the games.
+    if (daily) void import('./games').then(({ GROUPS }) => {
+      const games = GROUPS.flatMap((g) => g.games);
+      const left = games.filter((g) => g.id !== this.opts.id && !dailyRecord(g.id)?.done);
+      if (!left.length) { more.textContent = `All ${games.length} dailies done today ✓`; return; }
+      const nx = left[0];
+      more.replaceChildren(`Next daily: ${nx.icon ?? ''} ${nx.title} →`);
+      more.setAttribute('href', `${import.meta.env.BASE_URL}${nx.href ?? `${nx.id}/`}`);
+      more.title = `${left.length} of today's dailies left`;
+    });
     this.overlay.hidden = false;
     document.body.setAttribute('data-over', '');
     if (daily) { tick(); this.countdown = window.setInterval(tick, 1000); }

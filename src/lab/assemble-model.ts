@@ -59,6 +59,8 @@ export function spec(level: number): Spec {
     { n: 7, k: 3, scramble: 1 }, { n: 8, k: 3, scramble: 2 }, { n: 8, k: 3, scramble: 2 },
     { n: 9, k: 3, scramble: 3 }, { n: 10, k: 3, scramble: 3 },
   ];
+  // Beyond the table (endless only): four parts.
+  if (level >= t.length + 2) return { n: 11 + Math.min(2, level - t.length - 2), k: 4, scramble: 3 };
   return t[Math.min(level, t.length - 1)];
 }
 

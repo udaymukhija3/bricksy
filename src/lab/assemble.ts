@@ -9,8 +9,8 @@ import { Log } from '../log';
 import { Run } from '../run';
 import { makePuzzle, build as check, spec, cellKey, type Puzzle, type Plan } from './assemble-model';
 
-const PART_COLORS = [0xb56be0, 0x2ec4b6, 0xf28cb1];
-const PART_NAMES = ['purple', 'teal', 'pink'];
+const PART_COLORS = [0xb56be0, 0x2ec4b6, 0xf28cb1, 0x9ec26b];
+const PART_NAMES = ['purple', 'teal', 'pink', 'olive'];
 const TRAY_GAP = 3.2, TRAY_Z = 3.8;
 
 function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
@@ -193,7 +193,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   const onKey = (e: KeyboardEvent) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.key === 'Enter' && done) { (panelEl.querySelector('#post:not([hidden]) button.primary') as HTMLButtonElement | null)?.click(); e.preventDefault(); }
-    else if (/^[1-3]$/.test(e.key) && Number(e.key) <= puzzle.parts.length) { select(Number(e.key) - 1); e.preventDefault(); }
+    else if (/^[1-4]$/.test(e.key) && Number(e.key) <= puzzle.parts.length) { select(Number(e.key) - 1); e.preventDefault(); }
   };
   window.addEventListener('keydown', onKey);
   return () => { window.removeEventListener('keydown', onKey); stage.canvas.removeEventListener('click', onClick); for (const q of queues) q.dispose(); stage.dispose(); };

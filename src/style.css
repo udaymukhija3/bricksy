@@ -74,7 +74,7 @@ footer button { padding: 5px 10px; font-size: 12px; }
 #lives .lost { opacity: 0.25; }
 button.icon { padding: 4px 8px; font-size: 14px; line-height: 1; }
 footer a { color: var(--muted); }
-.overlay { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(20, 22, 28, 0.78); backdrop-filter: blur(3px); }
+.overlay { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(20, 22, 28, 0.78); backdrop-filter: blur(3px); z-index: 4; }
 .overlay .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 22px 28px; text-align: center; min-width: 260px; }
 .overlay h2 { margin: 0 0 8px; font-size: 22px; }
 .overlay p { margin: 4px 0 12px; }
