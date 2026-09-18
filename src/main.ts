@@ -3,6 +3,7 @@
 // piece can be lifted out and retried so the evidence of where it landed can be used.
 import './style.css';
 import './pwa.ts';
+import './guard.ts';
 import { PackStage, AXIS_COLOR } from './pack-scene.ts';
 import { STAGES, stageForScore, makePackPuzzle, land, type PackPuzzle, type Stage } from './pack.ts';
 import { MOVES, moveLabel, applyMoves, type Move, type Axis } from './polycube.ts';

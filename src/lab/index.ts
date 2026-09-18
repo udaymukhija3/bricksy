@@ -3,6 +3,7 @@
 // each mechanic is meant to require next to the mechanic.
 import '../style.css';
 import '../pwa.ts';
+import '../guard.ts';
 import { h } from './kit.ts';
 import type { SketchDef } from './types.ts';
 import { GAMES, PACK, TIGHT_FIT } from '../games.ts';

@@ -1,6 +1,7 @@
 // Tight Fit: map → job intro → stages → result. Stars persist per job.
 import '../style.css';
 import '../pwa.ts';
+import '../guard.ts';
 import { h, mulberry32 } from '../lab/kit.ts';
 import { Sfx } from '../sfx.ts';
 import { Log } from '../log.ts';

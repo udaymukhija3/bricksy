@@ -1,5 +1,6 @@
 import './style.css';
 import './pwa.ts';
+import './guard.ts';
 import { Stage, AXIS_COLOR } from './scene.ts';
 import { LEVELS, makePuzzle, type Puzzle } from './puzzle.ts';
 import { MOVES, moveLabel, applyMoves, shapeKey, type Move, type Axis } from './polycube.ts';

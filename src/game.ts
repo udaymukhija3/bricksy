@@ -1,6 +1,7 @@
 // Entry for every standalone game page: the page names its game in <html data-game>.
 import './style.css';
 import './pwa.ts';
+import './guard.ts';
 import { GAMES } from './games.ts';
 import { renderFrame } from './lab/frame.ts';
 

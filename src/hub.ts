@@ -2,6 +2,7 @@
 // with today's daily result on each card so the hub is also the day's scorecard.
 import './style.css';
 import './pwa.ts';
+import './guard.ts';
 import { h } from './lab/kit.ts';
 import type { SketchDef } from './lab/types.ts';
 import { GROUPS, TIGHT_FIT } from './games.ts';
