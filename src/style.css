@@ -226,3 +226,10 @@ input.num::-webkit-outer-spin-button, input.num::-webkit-inner-spin-button { -we
 .sk-stage .fade { position: absolute; inset: 0; background: #000; pointer-events: none; z-index: 2; }
 .dpad.wf { max-width: 300px; }
 .sk-stage .overlay-text.corner { place-items: start; padding: 10px 14px; font-size: 20px; }
+
+/* ---- Assemble ---- */
+.parts { display: flex; gap: 8px; flex-wrap: wrap; }
+.parts .part { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; align-items: center; text-align: left; padding: 6px 12px; border-top: 3px solid var(--c); }
+.parts .part.on { outline: 2px solid var(--accent); }
+.parts .part .sw { width: 12px; height: 12px; border-radius: 3px; background: var(--c); grid-row: 1 / 3; }
+.parts .part .sub { color: var(--muted); font-size: 11px; }

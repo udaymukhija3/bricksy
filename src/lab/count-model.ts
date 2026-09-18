@@ -1,6 +1,6 @@
 // Count: a stack of cubes and which of them a viewpoint hides. Pure and orthographic, so a
 // daily puzzle is the same on every screen (the stage uses a narrow FOV to match).
-import type { Cell } from '../polycube';
+import type { Cell } from '../polycube.ts';
 
 export const cellKey = (c: Cell) => c.join(',');
 

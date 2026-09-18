@@ -86,6 +86,7 @@ export class SketchStage {
     this.ro.observe(container);
     this.resize();
     this.renderer.setAnimationLoop(() => this.frame());
+    if (import.meta.env.DEV) (window as unknown as { stage: SketchStage }).stage = this; // dev: poke the live scene from the console
   }
 
   place(azimuth: number, elevation: number, distance: number, target: THREE.Vector3 | [number, number, number]) {
@@ -266,7 +267,7 @@ export function panel(container: HTMLElement) {
 }
 
 /** The six turn buttons, a chip queue, undo/clear/commit. */
-export function turnQueue(container: HTMLElement, opts: { commitLabel?: string; onHover?: (axis: Axis | null, dir: 1 | -1) => void; onCommit: (moves: Move[]) => void; max?: number }) {
+export function turnQueue(container: HTMLElement, opts: { commitLabel?: string; onHover?: (axis: Axis | null, dir: 1 | -1) => void; onCommit: (moves: Move[]) => void; max?: number; /** Commit with no turns queued is a valid answer ("no turns needed"). */ allowEmpty?: boolean }) {
   const queueEl = h('div#queue');
   const movesEl = h('div#moves');
   const undoB = h('button', { title: 'Backspace' }, '⌫ Undo') as HTMLButtonElement;
@@ -299,7 +300,7 @@ export function turnQueue(container: HTMLElement, opts: { commitLabel?: string; 
   };
   const undo = () => { if (enabled && moves.length) { moves.pop(); render(); api.onChange?.(moves); } };
   const clear = () => { if (enabled && moves.length) { moves = []; render(); api.onChange?.(moves); } };
-  const commit = () => { if (!enabled) return; if (!moves.length) { shakeQ(); return; } opts.onCommit([...moves]); };
+  const commit = () => { if (!enabled) return; if (!moves.length && !opts.allowEmpty) { shakeQ(); return; } opts.onCommit([...moves]); };
 
   for (const m of MOVES) {
     const b = h('button.mv', {
