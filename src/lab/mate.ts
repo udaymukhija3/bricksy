@@ -204,8 +204,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     P.post([{ label: 'Next ↵', primary: true, onClick: newPuzzle }]);
   }
 
-  run.onModeChange = newPuzzle;
-  newPuzzle();
+  run.begin(newPuzzle);
   const onKey = (e: KeyboardEvent) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     const k = e.key.toLowerCase();

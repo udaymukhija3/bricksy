@@ -122,8 +122,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     else P.post([{ label: 'Next ↵', primary: true, onClick: () => void newCase() }]);
   }
 
-  run.onModeChange = () => void newCase();
-  void newCase();
+  run.begin(() => void newCase());
   const onKey = (e: KeyboardEvent) => { if (e.key === 'Enter') { if (!commitB.disabled) commit(); else (panelEl.querySelector('#post:not([hidden]) button.primary') as HTMLButtonElement | null)?.click(); } };
   window.addEventListener('keydown', onKey);
   return () => { gen++; window.removeEventListener('keydown', onKey); stage.dispose(); };

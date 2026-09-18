@@ -1,11 +1,13 @@
-// Prototype 1: pack. A run of pieces, each of which must be turned to drop into its hole.
+// Pack: a run of pieces, each of which must be turned to drop into its hole. Daily and endless
+// come from the shared run loop; only the first drop of a piece decides its round, but a missed
+// piece can be lifted out and retried so the evidence of where it landed can be used.
 import './style.css';
 import './pwa';
 import { PackStage, AXIS_COLOR } from './pack-scene';
 import { STAGES, stageForScore, makePackPuzzle, land, type PackPuzzle, type Stage } from './pack';
 import { MOVES, moveLabel, applyMoves, type Move, type Axis } from './polycube';
 import { Log } from './log';
-import { Sfx } from './sfx';
+import { Run } from './run';
 import { COLOR_OK, COLOR_BAD } from './render-common';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -23,42 +25,37 @@ function mulberry32(seed: number) {
 
 // ---------------------------------------------------------------- state
 
-type Phase = 'plan' | 'anim' | 'result' | 'over';
-const LIVES = 3;
+type Phase = 'plan' | 'anim' | 'result';
 const MAX_QUEUE = 6;
-const BEST_KEY = 'bricksy.pack.best';
 
 const log = new Log();
-const sfx = new Sfx();
 const stage = new PackStage($<HTMLCanvasElement>('c'));
+const run = new Run({ id: 'pack', name: 'Pack', icon: '📦', dailyRounds: 8 }, $('hud'), $('stage'));
+const sfx = run.sfx;
+/** Stage thresholds are score-based; a daily climbs them twice as fast so eight rounds reach three turns. */
+const stageNow = () => stageForScore(run.mode === 'daily' ? run.round * 2 : run.score);
 
 let puzzle!: PackPuzzle;
 let current!: Stage;
 let queue: Move[] = [];
 let lastMoves: Move[] = [];
 let phase: Phase = 'plan';
-let score = 0;
-let streak = 0;
-let lives = LIVES;
 let attempt = 1;
 let runId = 0;
-let firstTry = 0;
-let presented = 0;
-let results: boolean[] = [];
-let best = Number(localStorage.getItem(BEST_KEY) ?? 0) || 0;
 let tPresent = 0;
 let tFirstInput = 0;
 
 // ---------------------------------------------------------------- dom
 
+const stageName = document.createElement('span');
+stageName.className = 'pill';
+$('hud').append(stageName);
 const el = {
-  score: $('score'), best: $('best'), streak: $('streak'), lives: $('lives'), stageName: $('stageName'), hint: $('hint'),
-  mute: $<HTMLButtonElement>('mute'),
+  stageName, hint: $('hint'),
   queue: $('queue'), moves: $('moves'),
   undo: $<HTMLButtonElement>('undo'), clear: $<HTMLButtonElement>('clear'), commit: $<HTMLButtonElement>('commit'),
   message: $('message'), post: $('post'),
   retry: $<HTMLButtonElement>('retry'), replay: $<HTMLButtonElement>('replay'), skip: $<HTMLButtonElement>('skip'), next: $<HTMLButtonElement>('next'),
-  over: $('over'), overScore: $('overScore'), overBest: $('overBest'), overDetail: $('overDetail'), overResults: $('overResults'), again: $<HTMLButtonElement>('again'), share: $<HTMLButtonElement>('share'),
   stageBox: $('stage'), puzzleId: $('puzzleId'), export: $('export'), reset: $('resetProgress'),
 };
 const postButtons = [el.retry, el.replay, el.skip, el.next];
@@ -84,15 +81,11 @@ el.retry.addEventListener('click', retry);
 el.replay.addEventListener('click', replay);
 el.skip.addEventListener('click', next);
 el.next.addEventListener('click', next);
-el.again.addEventListener('click', startRun);
-el.share.addEventListener('click', share);
 el.export.addEventListener('click', () => log.export());
-el.mute.addEventListener('click', () => { el.mute.textContent = sfx.toggle() ? '🔇' : '🔊'; });
-el.mute.textContent = sfx.muted ? '🔇' : '🔊';
 el.reset.addEventListener('click', () => {
-  if (!confirm('Clear best score and the event log?')) return;
+  if (!confirm('Clear Pack progress (best, streaks, today\'s daily) and the event log?')) return;
   log.clear();
-  localStorage.removeItem(BEST_KEY);
+  for (const k of Object.keys(localStorage)) if (k.startsWith('bricksy.pack.')) localStorage.removeItem(k);
   location.reload();
 });
 
@@ -112,9 +105,6 @@ window.addEventListener('keydown', (e) => {
     else if (k === 'r' && !el.retry.hidden) retry();
     else return;
     e.preventDefault();
-  } else if (phase === 'over' && k === 'enter') {
-    startRun();
-    e.preventDefault();
   }
 });
 
@@ -125,9 +115,8 @@ function setPhase(p: Phase) {
   const plan = p === 'plan';
   for (const b of moveButtons.values()) b.disabled = !plan;
   el.undo.disabled = el.clear.disabled = el.commit.disabled = !plan;
-  el.post.hidden = p === 'plan' || p === 'over';
+  el.post.hidden = p === 'plan';
   for (const b of postButtons) b.disabled = p === 'anim';
-  el.over.hidden = p !== 'over';
 }
 
 function setMessage(text: string, tone: '' | 'ok' | 'bad' = '') {
@@ -189,10 +178,6 @@ function scorePop(text: string) {
 }
 
 function updateHud() {
-  el.score.textContent = String(score);
-  el.best.textContent = String(best);
-  el.streak.textContent = String(streak);
-  el.lives.innerHTML = Array.from({ length: LIVES }, (_, i) => `<span class="${i < lives ? '' : 'lost'}">♥</span>`).join('');
   el.stageName.textContent = current.name;
 }
 
@@ -210,30 +195,23 @@ async function playMoves(moves: readonly Move[], ms: number, pause: number) {
 
 function startRun() {
   runId = Date.now();
-  score = 0;
-  streak = 0;
-  lives = LIVES;
-  firstTry = 0;
-  presented = 0;
-  results = [];
-  log.push('run_start', { runId });
+  log.push('run_start', { runId, mode: run.mode, round: run.round });
   newPiece();
 }
 
 function newPiece() {
-  const next = stageForScore(score);
-  if (current && next !== current) {
+  const next = stageNow();
+  if (current && next !== current && run.mode === 'endless') {
     sfx.levelUp();
     toast(`${next.name}`);
-    log.push('stage', { runId, stage: next.name, score });
+    log.push('stage', { runId, stage: next.name, score: run.score });
   }
   current = next;
-  const seed = (Math.random() * 2 ** 31) | 0;
+  const seed = run.nextSeed();
   puzzle = makePackPuzzle(current, seed, mulberry32(seed), (p) => {
     stage.setPuzzle(p);
     return stage.isReadable();
   });
-  presented++;
   queue = [];
   lastMoves = [];
   attempt = 1;
@@ -246,7 +224,7 @@ function newPiece() {
   el.puzzleId.textContent = `piece ${puzzle.id} · ${current.name} · seed ${seed}`;
   updateHud();
   log.push('present', {
-    runId, puzzleId: puzzle.id, stage: current.name, score, lives, seed,
+    runId, puzzleId: puzzle.id, stage: current.name, mode: run.mode, level: run.level, score: run.score, lives: run.lives, seed,
     piece: puzzle.piece, target: puzzle.target, cavity: puzzle.cavity, mold: puzzle.mold,
     distance: puzzle.distance, marker: puzzle.markerPiece, glass: current.glass, pose: puzzle.pose,
   });
@@ -298,36 +276,30 @@ async function commit() {
   log.push('drop', { puzzleId: puzzle.id, attempt, ok, moves: moves.map(moveLabel), landing: landing.origin, solution: puzzle.solution.map(moveLabel) });
 
   if (ok) {
-    sfx.fit();
     stage.fuse();
     void stage.pulse(COLOR_OK);
-    score++;
-    streak++;
-    if (attempt === 1) firstTry++;
-    if (score > best) { best = score; localStorage.setItem(BEST_KEY, String(best)); }
-    scorePop(`+1`);
-    updateHud();
+    if (attempt === 1) { run.hit(); scorePop('+1'); } else sfx.fit();
     setPhase('result');
-    setMessage(attempt === 1 ? 'Fits.' : 'Fits — on the second try.', 'ok');
+    setMessage(attempt === 1 ? 'Fits.' : 'Fits — on the second try. The first drop already counted as a miss.', attempt === 1 ? 'ok' : '');
     showPost([el.next], el.next);
     await sleep(900);
     if ((phase as Phase) === 'result') next(); // auto-advance unless the player already moved on
     return;
   }
 
-  sfx.miss();
   void stage.shake();
   void stage.pulse(COLOR_BAD);
-  lives--;
-  streak = 0;
-  updateHud();
-  if (lives <= 0) {
+  if (attempt === 1) run.miss(); else sfx.miss();
+  if (run.over) {
     await sleep(700);
-    endRun();
+    run.showOver(startRun);
+    setPhase('result');
+    showPost([], null);
     return;
   }
   setPhase('result');
-  setMessage(`Doesn't fit. ${lives} ${lives === 1 ? 'life' : 'lives'} left — look at where it landed versus the hole.`, 'bad');
+  const left = run.mode === 'endless' ? ` ${run.lives} ${run.lives === 1 ? 'life' : 'lives'} left —` : '';
+  setMessage(`Doesn't fit.${left} look at where it landed versus the hole. Lift it out to try again for practice, or move on.`, 'bad');
   showPost([el.retry, el.replay, el.skip], el.retry);
 }
 
@@ -359,29 +331,11 @@ async function replay() {
 function next() {
   if (phase !== 'result') return;
   log.push('next', { puzzleId: puzzle.id });
+  if (run.over) { run.showOver(startRun); showPost([], null); return; }
   newPiece();
 }
 
-function endRun() {
-  sfx.over();
-  log.push('run_over', { runId, score, best, presented, firstTry });
-  el.overScore.textContent = String(score);
-  el.overBest.textContent = String(best);
-  el.overDetail.textContent = `${firstTry} of ${presented} pieces fitted first try · reached “${current.name}”`;
-  el.overResults.textContent = results.map((r) => (r ? '🟩' : '🟥')).join('');
-  setPhase('over');
-}
-
-async function share() {
-  const text = `📦 Pack · ${score} fitted · reached ${current.name}\n${results.map((r) => (r ? '🟩' : '🟥')).join('')}\n${location.origin}${location.pathname}`;
-  try {
-    if (navigator.share) { await navigator.share({ text }); return; }
-    await navigator.clipboard.writeText(text);
-    toast('Copied to clipboard');
-  } catch { /* cancelled */ }
-}
-
-startRun();
+run.begin(startRun);
 
 if (import.meta.env.DEV) {
   // Experimenter hooks — not part of the game surface.

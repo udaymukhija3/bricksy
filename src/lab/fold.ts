@@ -141,8 +141,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     return i === asked ? 'the same face' : 'next to it (they share an edge)';
   }
 
-  run.onModeChange = build;
-  build();
+  run.begin(build);
   const onKey = (e: KeyboardEvent) => { if (e.key === 'Enter') { if (!commitB.disabled) commit(); else (panelEl.querySelector('#post:not([hidden]) button.primary') as HTMLButtonElement | null)?.click(); } };
   window.addEventListener('keydown', onKey);
   return () => { window.removeEventListener('keydown', onKey); stage.canvas.removeEventListener('click', onClick); stage.dispose(); };

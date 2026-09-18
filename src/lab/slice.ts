@@ -270,8 +270,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     else P.post([{ label: 'Next ↵', primary: true, onClick: newCase }]);
   }
 
-  run.onModeChange = newCase;
-  newCase();
+  run.begin(newCase);
   const onKey = (e: KeyboardEvent) => {
     if (e.key === 'Enter') { if (!commitB.disabled) commit(); else (panelEl.querySelector('#post:not([hidden]) button.primary') as HTMLButtonElement | null)?.click(); }
     else if (/^[1-4]$/.test(e.key) && C?.enabled) (C.el.children[Number(e.key) - 1] as HTMLElement | undefined)?.click();

@@ -202,8 +202,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     else P.post([{ label: 'Next ↵', primary: true, onClick: () => void newMaze() }]);
   }
 
-  run.onModeChange = () => void newMaze();
-  void newMaze();
+  run.begin(() => void newMaze());
   const KEYS: Record<string, Rel> = { ArrowLeft: 'left', ArrowUp: 'forward', ArrowRight: 'right', ArrowDown: 'back', a: 'left', w: 'forward', d: 'right', s: 'back' };
   const onKey = (e: KeyboardEvent) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;

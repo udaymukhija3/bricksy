@@ -138,8 +138,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     else P.post([{ label: 'Next ↵', primary: true, onClick: newRoom }]);
   }
 
-  run.onModeChange = newRoom;
-  newRoom();
+  run.begin(newRoom);
   const onKey = (e: KeyboardEvent) => {
     if (e.key === 'Enter') { if (!commitB.disabled) commit(); else (panelEl.querySelector('#post:not([hidden]) button.primary') as HTMLButtonElement | null)?.click(); }
     else if (/^[1-6]$/.test(e.key) && !commitB.disabled && Number(e.key) <= loose.cubes.length) { picked = Number(e.key) - 1; loose.cubes.forEach((cube, i) => { const m = cube.material as THREE.MeshStandardMaterial; m.emissive.set(i === picked ? 0xffffff : 0); m.emissiveIntensity = 0.35; }); P.message(`Cube ${picked + 1} picked.`); }

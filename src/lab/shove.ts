@@ -214,8 +214,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     P.post([{ label: 'Next ↵', primary: true, onClick: newLevel }]);
   }
 
-  run.onModeChange = newLevel;
-  newLevel();
+  run.begin(newLevel);
   const KEYS: Record<string, Move> = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', q: 'ccw', e: 'cw', Q: 'ccw', E: 'cw' };
   const onKey = (e: KeyboardEvent) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;

@@ -189,8 +189,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     P.post([{ label: 'Next ↵', primary: true, onClick: newPuzzle }]);
   }
 
-  run.onModeChange = newPuzzle;
-  newPuzzle();
+  run.begin(newPuzzle);
   const onKey = (e: KeyboardEvent) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.key === 'Enter' && done) { (panelEl.querySelector('#post:not([hidden]) button.primary') as HTMLButtonElement | null)?.click(); e.preventDefault(); }

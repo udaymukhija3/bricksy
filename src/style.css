@@ -242,3 +242,14 @@ button.mv.picked { outline: 2px solid var(--accent); }
 .group { margin-top: 10px; }
 .group h2 { margin: 0 0 2px; font-size: 16px; }
 .group p { margin: 0; font-size: 13px; }
+
+/* ---- daily lock: the result card parks the controls under it ---- */
+body[data-over] #panel, body[data-over] .sk-panel { pointer-events: none; opacity: 0.45; }
+.overlay .card .next { font-variant-numeric: tabular-nums; }
+a.button { display: inline-block; font: inherit; color: var(--text); background: var(--raised); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; text-decoration: none; }
+a.button:hover { background: #2f3441; }
+.hub .today { color: var(--accent); font-size: 12px; white-space: nowrap; }
+.hub .today.done { color: var(--y); }
+.hub .today.partial { color: var(--muted); }
+.hub .today .grid { display: inline; letter-spacing: 1px; font-size: 10px; }
+.hub .card-top { flex-wrap: wrap; }

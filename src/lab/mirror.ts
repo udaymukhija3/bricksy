@@ -123,8 +123,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     else P.post([{ label: 'Next ↵', primary: true, onClick: next }]);
   }
 
-  run.onModeChange = () => { trap = makeTrap(cubesFor(run.level), mulberry32(run.nextSeed())); build(); };
-  build();
+  run.begin(() => { trap = makeTrap(cubesFor(run.level), mulberry32(run.nextSeed())); build(); });
   const onKey = (e: KeyboardEvent) => {
     if (e.key === 'Enter') { if (!commitB.disabled) commit(); else (panelEl.querySelector('#post:not([hidden]) button.primary') as HTMLButtonElement | null)?.click(); }
     else if (e.key === '1' && C.enabled) (C.el.children[0] as HTMLElement).click();

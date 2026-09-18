@@ -70,8 +70,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     else P.post([{ label: 'Next ↵', primary: true, onClick: newCase }]);
   }
 
-  run.onModeChange = newCase;
-  newCase();
+  run.begin(newCase);
   const onKey = (e: KeyboardEvent) => {
     if (document.activeElement === num && e.key !== 'Enter') return;
     if (e.key === 'Enter') { if (!commitB.disabled) commit(); else (panelEl.querySelector('#post:not([hidden]) button.primary') as HTMLButtonElement | null)?.click(); }
