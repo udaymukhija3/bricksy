@@ -2,10 +2,10 @@
 // brainstorm is now a game with its own page; this page is the index that keeps the skill
 // each mechanic is meant to require next to the mechanic.
 import '../style.css';
-import '../pwa';
-import { h } from './kit';
-import type { SketchDef } from './types';
-import { GAMES, PACK, TIGHT_FIT } from '../games';
+import '../pwa.ts';
+import { h } from './kit.ts';
+import type { SketchDef } from './types.ts';
+import { GAMES, PACK, TIGHT_FIT } from '../games.ts';
 
 const ROSTER: SketchDef[] = [
   TIGHT_FIT,

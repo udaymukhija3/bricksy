@@ -1,5 +1,5 @@
 // Episode 1 — First Day. Ten jobs; each is a chain of stages on one item.
-import type { StageType } from './stages';
+import type { StageType } from './stages.ts';
 
 export interface JobDef {
   id: number;

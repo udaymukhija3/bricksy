@@ -1,15 +1,15 @@
 // Mirror Trap: is the right shape a rotation of the left one, or its mirror image?
 // After you commit, the left shape rotates to its best fit and slides onto the right one.
 import * as THREE from 'three';
-import { isPlanar, normalize, orientations, randomPolycube, shapeKey, type Cell, moveLabel } from '../polycube';
-import { SketchStage, cubeGroup, choices, panel, h, mulberry32, pick, sleep, pulseMats, easeInOut, COLOR_OK, COLOR_BAD, cellKey } from './kit';
-import type { SketchDef, MountCtx } from './types';
-import { Log } from '../log';
-import { Run } from '../run';
+import { isPlanar, normalize, orientations, randomPolycube, shapeKey, type Cell, moveLabel } from '../polycube.ts';
+import { SketchStage, cubeGroup, choices, panel, h, mulberry32, pick, sleep, pulseMats, easeInOut, COLOR_OK, COLOR_BAD, cellKey } from './kit.ts';
+import type { SketchDef, MountCtx } from './types.ts';
+import { Log } from '../log.ts';
+import { Run } from '../run.ts';
 
 const mirrorX = (cells: Cell[]) => normalize(cells.map(([x, y, z]) => [-x + 0, y, z] as Cell));
 
-function makeTrap(cubes: number, rng: () => number) {
+export function makeTrap(cubes: number, rng: () => number) {
   for (let tries = 0; tries < 400; tries++) {
     const a = randomPolycube(cubes, rng);
     if (isPlanar(a)) continue; // planar shapes can be flipped over: never chiral
@@ -27,11 +27,13 @@ function makeTrap(cubes: number, rng: () => number) {
   throw new Error('no trap');
 }
 
+/** Difficulty by level: five cubes, then six, seven, eight. */
+export const cubesFor = (level: number) => Math.min(8, 5 + Math.floor(level / 4));
+
 function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   const log = new Log();
   const stage = new SketchStage(stageEl, { fov: 14, ground: -2.6 });
   const run = new Run({ id: 'mirror', name: 'Mirror', icon: '🪞', dailyRounds: 10 }, hudEl, stageEl);
-  const cubesFor = (level: number) => Math.min(7, 5 + Math.floor(level / 4));
   let trap = makeTrap(cubesFor(run.level), mulberry32(run.nextSeed()));
   let A!: ReturnType<typeof cubeGroup>, B!: ReturnType<typeof cubeGroup>;
   const world = new THREE.Group();

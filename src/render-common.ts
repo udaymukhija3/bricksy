@@ -1,6 +1,6 @@
 // Rendering helpers shared by the match (prototype 0) and pack (prototype 1) stages.
 import * as THREE from 'three';
-import type { Axis } from './polycube';
+import type { Axis } from './polycube.ts';
 
 export const AXIS_COLOR: Record<Axis, number> = { x: 0xe5484d, y: 0x46a758, z: 0x3e8ff5 };
 export const AXIS_VEC: Record<Axis, THREE.Vector3> = {

@@ -2,12 +2,12 @@
 // a quarter-turn — that leaves the red king with no safe square. The shadow after the move is
 // never previewed; that is the prediction.
 import * as THREE from 'three';
-import type { Cell } from '../polycube';
-import { SketchStage, cubeGroup, voxelMesh, panel, h, mulberry32, sleep, easeInOut, pulseMats, COLOR_OK, COLOR_BAD, AXIS_COLOR, cssColor, cubeGeo, edgeGeo } from './kit';
-import type { SketchDef, MountCtx } from './types';
-import { Log } from '../log';
-import { Run } from '../run';
-import { makePuzzle, apply, isMate, allAttacks, kingSquares, kingReplies, applyKing, matingMoves, spec, key, ACTIONS, actionLabel, type Puzzle, type State, type Action, type P } from './mate-model';
+import type { Cell } from '../polycube.ts';
+import { SketchStage, cubeGroup, voxelMesh, panel, h, mulberry32, sleep, easeInOut, pulseMats, COLOR_OK, COLOR_BAD, AXIS_COLOR, cssColor, cubeGeo, edgeGeo } from './kit.ts';
+import type { SketchDef, MountCtx } from './types.ts';
+import { Log } from '../log.ts';
+import { Run } from '../run.ts';
+import { makePuzzle, apply, isMate, allAttacks, kingSquares, kingReplies, applyKing, matingMoves, spec, key, ACTIONS, actionLabel, type Puzzle, type State, type Action, type P } from './mate-model.ts';
 
 const same = (a: Action, b: Action) => JSON.stringify(a) === JSON.stringify(b);
 

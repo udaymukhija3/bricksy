@@ -1,13 +1,13 @@
 // Tight Fit: map → job intro → stages → result. Stars persist per job.
 import '../style.css';
-import '../pwa';
-import { h, mulberry32 } from '../lab/kit';
-import { Sfx } from '../sfx';
-import { Log } from '../log';
-import { makeItem, type Body } from './model';
-import { STAGES } from './stages';
-import { EPISODE, JOBS, STAGE_NAMES, dailyJob, type JobDef } from './jobs';
-import { today, dayNumber, dailyRecord, statsOf } from '../run';
+import '../pwa.ts';
+import { h, mulberry32 } from '../lab/kit.ts';
+import { Sfx } from '../sfx.ts';
+import { Log } from '../log.ts';
+import { makeItem, type Body } from './model.ts';
+import { STAGES } from './stages.ts';
+import { EPISODE, JOBS, STAGE_NAMES, dailyJob, type JobDef } from './jobs.ts';
+import { today, dayNumber, dailyRecord, statsOf } from '../run.ts';
 
 const app = document.getElementById('app')!;
 const sfx = new Sfx();

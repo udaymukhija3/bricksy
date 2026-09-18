@@ -1,11 +1,11 @@
 // The front door: one card per game, grouped by the kind of spatial operation each asks for,
 // with today's daily result on each card so the hub is also the day's scorecard.
 import './style.css';
-import './pwa';
-import { h } from './lab/kit';
-import type { SketchDef } from './lab/types';
-import { GROUPS, TIGHT_FIT } from './games';
-import { dailyRecord, dayNumber, statsOf } from './run';
+import './pwa.ts';
+import { h } from './lab/kit.ts';
+import type { SketchDef } from './lab/types.ts';
+import { GROUPS, TIGHT_FIT } from './games.ts';
+import { dailyRecord, dayNumber, statsOf } from './run.ts';
 
 const app = document.getElementById('app')!;
 const games = [TIGHT_FIT, ...GROUPS.flatMap((g) => g.games)];

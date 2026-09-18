@@ -1,11 +1,11 @@
 // Count: a stack of cubes seen from one viewpoint. Some are hidden. How many cubes are there?
 // Commit, then the stack turns and the hidden ones light up orange.
 import * as THREE from 'three';
-import { SketchStage, cubeGroup, panel, h, mulberry32, pulseMats, COLOR_OK, COLOR_BAD, easeInOut, COLOR_MARKER } from './kit';
-import type { SketchDef, MountCtx } from './types';
-import { Log } from '../log';
-import { Run } from '../run';
-import { makeStack, type Stack } from './count-model';
+import { SketchStage, cubeGroup, panel, h, mulberry32, pulseMats, COLOR_OK, COLOR_BAD, easeInOut, COLOR_MARKER } from './kit.ts';
+import type { SketchDef, MountCtx } from './types.ts';
+import { Log } from '../log.ts';
+import { Run } from '../run.ts';
+import { makeStack, type Stack } from './count-model.ts';
 
 /** Difficulty by level: footprint first, then height. */
 const setup = (level: number) => (level < 3 ? { base: 3, maxH: 3 } : level < 6 ? { base: 4, maxH: 3 } : level < 9 ? { base: 4, maxH: 4 } : { base: 5, maxH: 4 });

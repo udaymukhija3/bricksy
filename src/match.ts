@@ -1,9 +1,9 @@
 import './style.css';
-import './pwa';
-import { Stage, AXIS_COLOR } from './scene';
-import { LEVELS, makePuzzle, type Puzzle } from './puzzle';
-import { MOVES, moveLabel, applyMoves, shapeKey, type Move, type Axis } from './polycube';
-import { Log } from './log';
+import './pwa.ts';
+import { Stage, AXIS_COLOR } from './scene.ts';
+import { LEVELS, makePuzzle, type Puzzle } from './puzzle.ts';
+import { MOVES, moveLabel, applyMoves, shapeKey, type Move, type Axis } from './polycube.ts';
+import { Log } from './log.ts';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));

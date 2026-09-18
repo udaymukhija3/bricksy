@@ -1,10 +1,10 @@
 // Gravity Rooms: a room with loose cubes. The room is about to turn. Which cube ends up in the socket?
 import * as THREE from 'three';
-import { rotateCell, type Cell, type Move, MOVES, moveLabel } from '../polycube';
-import { SketchStage, cubeGroup, voxelMesh, panel, h, mulberry32, pick, sleep, easeIn, cellKey, COLOR_OK, COLOR_BAD, pulseMats, cubeGeo, edgeGeo } from './kit';
-import type { SketchDef, MountCtx } from './types';
-import { Log } from '../log';
-import { Run } from '../run';
+import { rotateCell, type Cell, type Move, MOVES, moveLabel } from '../polycube.ts';
+import { SketchStage, cubeGroup, voxelMesh, panel, h, mulberry32, pick, sleep, easeIn, cellKey, COLOR_OK, COLOR_BAD, pulseMats, cubeGeo, edgeGeo } from './kit.ts';
+import type { SketchDef, MountCtx } from './types.ts';
+import { Log } from '../log.ts';
+import { Run } from '../run.ts';
 
 const COLORS = [0xe5484d, 0x46a758, 0x3e8ff5, 0xf5a524, 0xb56be0, 0x2ec4b6];
 
@@ -29,7 +29,7 @@ function settle(n: number, fixed: Cell[], loose: Cell[], g: Cell): Cell[] {
   return out;
 }
 
-function makeRoom(n: number, looseN: number, fixedN: number, rng: () => number): Room {
+export function makeRoom(n: number, looseN: number, fixedN: number, rng: () => number): Room {
   for (let tries = 0; tries < 500; tries++) {
     const taken = new Set<string>();
     const rnd = (): Cell => [Math.floor(rng() * n), Math.floor(rng() * n), Math.floor(rng() * n)];
@@ -54,12 +54,13 @@ function makeRoom(n: number, looseN: number, fixedN: number, rng: () => number):
   throw new Error('no room');
 }
 
+/** Difficulty by level: more loose cubes, more ledges, then a bigger room. */
+export const setup = (level: number) => ({ n: level >= 8 ? 5 : 4, looseN: Math.min(5, 3 + Math.floor(level / 3)), fixedN: (level >= 8 ? 7 : 4) + Math.floor(level / 4) });
+
 function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   const log = new Log();
   const stage = new SketchStage(stageEl, { gizmo: true, ground: null });
   const run = new Run({ id: 'tilt', name: 'Tilt', icon: '🎲', dailyRounds: 8 }, hudEl, stageEl);
-  /** Difficulty by level: more loose cubes, more ledges, then a bigger room. */
-  const setup = (level: number) => ({ n: level >= 8 ? 5 : 4, looseN: Math.min(5, 3 + Math.floor(level / 3)), fixedN: (level >= 8 ? 7 : 4) + Math.floor(level / 4) });
   let room!: Room;
   const world = new THREE.Group();
   stage.scene.add(world);

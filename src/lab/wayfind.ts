@@ -2,12 +2,12 @@
 // you commit a direction; the corridor then plays out. Later, your start heading no longer matches
 // the map's up, so two frames of reference have to be aligned before memory is any use.
 import * as THREE from 'three';
-import type { Cell } from '../polycube';
-import { SketchStage, voxelMesh, panel, h, mulberry32, sleep, easeInOut, easeOut } from './kit';
-import type { SketchDef, MountCtx } from './types';
-import { Log } from '../log';
-import { Run } from '../run';
-import { generate, walk, good, turnTo, spec, key, HEAD_VEC, type Maze, type P, type Heading, type Rel } from './wayfind-model';
+import type { Cell } from '../polycube.ts';
+import { SketchStage, voxelMesh, panel, h, mulberry32, sleep, easeInOut, easeOut } from './kit.ts';
+import type { SketchDef, MountCtx } from './types.ts';
+import { Log } from '../log.ts';
+import { Run } from '../run.ts';
+import { generate, walk, good, turnTo, spec, key, HEAD_VEC, type Maze, type P, type Heading, type Rel } from './wayfind-model.ts';
 
 const RELS: Rel[] = ['left', 'forward', 'right', 'back'];
 const GLYPH: Record<Rel, string> = { left: '←', forward: '↑', right: '→', back: '↓' };

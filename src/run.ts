@@ -1,8 +1,8 @@
 // The product layer every game shares: a daily puzzle (same seed for everyone, fixed rounds,
 // shareable result, one play per day) and an endless mode (lives, score, best). Daily progress
 // survives a reload; finishing one records a day streak and locks it until tomorrow.
-import { h, toast } from './lab/kit';
-import { Sfx } from './sfx';
+import { h, toast } from './lab/kit.ts';
+import { Sfx } from './sfx.ts';
 
 export type Mode = 'daily' | 'endless';
 
@@ -23,7 +23,7 @@ export const today = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth
 export const EPOCH = Date.UTC(2026, 8, 18);
 export const dayNumber = (d = new Date()) => Math.floor((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - EPOCH) / 86400000) + 1;
 /** Dev only: `?level=N` pins the difficulty so high levels can be checked without earning them. */
-const DEV_LEVEL = import.meta.env.DEV && new URLSearchParams(location.search).has('level') ? Number(new URLSearchParams(location.search).get('level')) : null;
+const DEV_LEVEL = typeof location !== 'undefined' && import.meta.env?.DEV && new URLSearchParams(location.search).has('level') ? Number(new URLSearchParams(location.search).get('level')) : null;
 const msToMidnight = () => { const n = new Date(); const m = new Date(n); m.setHours(24, 0, 0, 0); return m.getTime() - n.getTime(); };
 
 function hash(s: string) {
@@ -67,7 +67,10 @@ export class Run {
   /** @deprecated use begin(); kept so a game may still set it directly. */
   onModeChange: (() => void) | null = null;
 
-  constructor(readonly opts: RunOpts, hudEl: HTMLElement, stageEl: HTMLElement) {
+  readonly opts: RunOpts;
+
+  constructor(opts: RunOpts, hudEl: HTMLElement, stageEl: HTMLElement) {
+    this.opts = opts;
     this.lives = opts.lives ?? 3;
     this.mode = (localStorage.getItem(`bricksy.${opts.id}.mode`) as Mode) || 'daily';
     this.best = Number(localStorage.getItem(`bricksy.${opts.id}.best`)) || 0;
@@ -267,7 +270,7 @@ export class Run {
     ));
     // A finished daily hands over to the next game not yet played today. The roster is loaded
     // lazily so this module stays light and free of a cycle with the games.
-    if (daily) void import('./games').then(({ GROUPS }) => {
+    if (daily) void import('./games.ts').then(({ GROUPS }) => {
       const games = GROUPS.flatMap((g) => g.games);
       const left = games.filter((g) => g.id !== this.opts.id && !dailyRecord(g.id)?.done);
       if (!left.length) { more.textContent = `All ${games.length} dailies done today ✓`; return; }

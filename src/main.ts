@@ -2,15 +2,15 @@
 // come from the shared run loop; only the first drop of a piece decides its round, but a missed
 // piece can be lifted out and retried so the evidence of where it landed can be used.
 import './style.css';
-import './pwa';
-import { PackStage, AXIS_COLOR } from './pack-scene';
-import { STAGES, stageForScore, makePackPuzzle, land, type PackPuzzle, type Stage } from './pack';
-import { MOVES, moveLabel, applyMoves, type Move, type Axis } from './polycube';
-import { Log } from './log';
-import { Run } from './run';
-import { helpCard } from './lab/frame';
-import { PACK } from './games';
-import { COLOR_OK, COLOR_BAD } from './render-common';
+import './pwa.ts';
+import { PackStage, AXIS_COLOR } from './pack-scene.ts';
+import { STAGES, stageForScore, makePackPuzzle, land, type PackPuzzle, type Stage } from './pack.ts';
+import { MOVES, moveLabel, applyMoves, type Move, type Axis } from './polycube.ts';
+import { Log } from './log.ts';
+import { Run } from './run.ts';
+import { helpCard } from './lab/frame.ts';
+import { PACK } from './games.ts';
+import { COLOR_OK, COLOR_BAD } from './render-common.ts';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));

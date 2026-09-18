@@ -1,11 +1,11 @@
 // Shadows: three silhouettes of a hidden object; build what casts them.
 // You see your build in 3D but never its silhouettes until you commit — that is the skill.
 import * as THREE from 'three';
-import { randomPolycube, extents, type Cell } from '../polycube';
-import { SketchStage, cubeGroup, layerBuilder, gridPicker, panel, h, mulberry32, pulseMats, COLOR_OK, COLOR_BAD, cellKey, sleep } from './kit';
-import type { SketchDef, MountCtx } from './types';
-import { Log } from '../log';
-import { Run } from '../run';
+import { randomPolycube, extents, type Cell } from '../polycube.ts';
+import { SketchStage, cubeGroup, layerBuilder, gridPicker, panel, h, mulberry32, pulseMats, COLOR_OK, COLOR_BAD, cellKey, sleep } from './kit.ts';
+import type { SketchDef, MountCtx } from './types.ts';
+import { Log } from '../log.ts';
+import { Run } from '../run.ts';
 
 type Dims = { w: number; h: number; d: number };
 type View = 'top' | 'front' | 'right';
@@ -21,7 +21,7 @@ export function project(cells: Cell[], dims: Dims): Record<View, Set<string>> {
   return { top, front, right };
 }
 
-function makeCase(dims: Dims, n: number, rng: () => number) {
+export function makeCase(dims: Dims, n: number, rng: () => number) {
   for (let tries = 0; tries < 500; tries++) {
     const cells = randomPolycube(n, rng);
     const [ex, ey, ez] = extents(cells);
@@ -34,7 +34,7 @@ function makeCase(dims: Dims, n: number, rng: () => number) {
 }
 
 /** Difficulty by level: more cubes in a 3³ box, then a wider box. */
-const setup = (level: number): { dims: Dims; n: number } =>
+export const setup = (level: number): { dims: Dims; n: number } =>
   level < 6 ? { dims: { w: 3, h: 3, d: 3 }, n: Math.min(8, 5 + Math.floor((level + 1) / 2)) } : { dims: { w: 4, h: 3, d: 4 }, n: Math.min(10, 7 + Math.floor((level - 6) / 2)) };
 
 function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {

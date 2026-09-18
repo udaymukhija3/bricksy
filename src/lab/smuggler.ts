@@ -1,15 +1,15 @@
 // Shape Smuggler: get one piece through a sequence of openings with the fewest turns.
 // Orientation carries over from wall to wall, so each wall is planned from where the last left you.
 import * as THREE from 'three';
-import { applyMoves, bboxMin, isPlanar, normalize, orientations, randomPolycube, rotateCell, shapeKey, type Cell, type Move, MOVES, moveLabel } from '../polycube';
-import { SketchStage, cubeGroup, voxelMesh, turnQueue, panel, mulberry32, pick, sleep, pulseMats, easeIn, easeOut, COLOR_OK, COLOR_BAD } from './kit';
-import type { SketchDef, MountCtx } from './types';
-import { Log } from '../log';
-import { Run } from '../run';
+import { applyMoves, bboxMin, isPlanar, normalize, orientations, randomPolycube, rotateCell, shapeKey, type Cell, type Move, MOVES, moveLabel } from '../polycube.ts';
+import { SketchStage, cubeGroup, voxelMesh, turnQueue, panel, mulberry32, pick, sleep, pulseMats, easeIn, easeOut, COLOR_OK, COLOR_BAD } from './kit.ts';
+import type { SketchDef, MountCtx } from './types.ts';
+import { Log } from '../log.ts';
+import { Run } from '../run.ts';
 
-import { PLATE, GAP, silhouette, placeSil, passes, plateFor, type Wall } from '../smuggle-model';
+import { PLATE, GAP, silhouette, placeSil, passes, plateFor, type Wall } from '../smuggle-model.ts';
 
-function makeRun(cubes: number, walls: number, rng: () => number) {
+export function makeRun(cubes: number, walls: number, rng: () => number) {
   for (let tries = 0; tries < 200; tries++) {
     const shape = randomPolycube(cubes, rng);
     if (cubes >= 5 && isPlanar(shape)) continue; // no non-planar tetracube is asymmetric
@@ -37,6 +37,10 @@ function makeRun(cubes: number, walls: number, rng: () => number) {
   throw new Error('no run');
 }
 
+/** Difficulty by level: five cubes, then six; a fourth wall from level 6. */
+export const cubesFor = (level: number) => (level < 3 ? 5 : 6);
+export const wallsFor = (level: number) => (level < 6 ? 3 : 4);
+
 /** Fewest turns to pass every wall: 0-1 BFS over (orientation, walls passed). */
 function par(start: Cell[], walls: Wall[]) {
   const dist = new Map<string, number>();
@@ -63,9 +67,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   const stage = new SketchStage(stageEl, { gizmo: true });
   // Each wall is a round: a hit if you pass it on the first send, a miss on the first bonk.
   const game = new Run({ id: 'smuggle', name: 'Smuggle', icon: '🧱', dailyRounds: 6 }, hudEl, stageEl);
-  const WALLS = 3;
-  const cubesFor = (level: number) => (level < 3 ? 5 : 6);
-  let run = makeRun(cubesFor(game.level), WALLS, mulberry32(game.nextSeed()));
+  let run = makeRun(cubesFor(game.level), wallsFor(game.level), mulberry32(game.nextSeed()));
   let cells: Cell[] = [];
   let moves: Move[] = [];
   let wallIdx = 0;
@@ -112,7 +114,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   }
 
   function newRun() {
-    run = makeRun(cubesFor(game.level), WALLS, mulberry32(game.nextSeed()));
+    run = makeRun(cubesFor(game.level), wallsFor(game.level), mulberry32(game.nextSeed()));
     build();
   }
 

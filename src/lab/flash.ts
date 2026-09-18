@@ -1,14 +1,14 @@
 // Flash: see a shape for a few seconds, then rebuild it from memory.
 import * as THREE from 'three';
-import { randomPolycube, extents, normalize, shapeKey, type Cell } from '../polycube';
-import { SketchStage, cubeGroup, layerBuilder, panel, h, mulberry32, pulseMats, COLOR_OK, COLOR_BAD, cellKey, sleep } from './kit';
-import type { SketchDef, MountCtx } from './types';
-import { Log } from '../log';
-import { Run } from '../run';
+import { randomPolycube, extents, normalize, shapeKey, type Cell } from '../polycube.ts';
+import { SketchStage, cubeGroup, layerBuilder, panel, h, mulberry32, pulseMats, COLOR_OK, COLOR_BAD, cellKey, sleep } from './kit.ts';
+import type { SketchDef, MountCtx } from './types.ts';
+import { Log } from '../log.ts';
+import { Run } from '../run.ts';
 
 type Dims = { w: number; h: number; d: number };
 
-function makeCase(dims: Dims, n: number, rng: () => number) {
+export function makeCase(dims: Dims, n: number, rng: () => number) {
   for (let tries = 0; tries < 500; tries++) {
     const cells = randomPolycube(n, rng);
     const [ex, ey, ez] = extents(cells);
@@ -19,8 +19,8 @@ function makeCase(dims: Dims, n: number, rng: () => number) {
 }
 
 /** Difficulty by level: more cubes, then less time, then the view turns before you build. */
-const setup = (level: number) => {
-  const table = [[4, 3000, 0], [5, 3000, 0], [5, 2500, 0], [6, 2500, 0], [6, 2000, 0], [6, 2000, 1], [7, 2000, 1], [7, 1500, 1]];
+export const setup = (level: number) => {
+  const table = [[4, 3000, 0], [5, 3000, 0], [5, 2500, 0], [6, 2500, 0], [6, 2000, 0], [6, 2000, 1], [7, 2000, 1], [7, 1500, 1], [8, 1500, 1], [8, 1200, 1]];
   const [n, showMs, turn] = table[Math.min(level, table.length - 1)];
   return { n, showMs, turnView: turn === 1 };
 };

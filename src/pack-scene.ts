@@ -1,13 +1,13 @@
 // Prototype 1 stage: one scene — a mold with a cavity, and a piece hovering above it.
 import * as THREE from 'three';
-import { applyMoves, bboxMin, type Axis, type Cell, type Move } from './polycube';
-import { cellKey, type Landing, type PackPuzzle } from './pack';
+import { applyMoves, bboxMin, type Axis, type Cell, type Move } from './polycube.ts';
+import { cellKey, type Landing, type PackPuzzle } from './pack.ts';
 import {
   AXIS_VEC, COLOR_BG, COLOR_MARKER, Ticker, addLights, cubeGeo, edgeGeo, edgeMat, easeIn, easeInOut, easeOut,
   fitDistance, highlightGizmo, makeCubeMaterials, makeGizmo, placeCamera, renderGizmo, type Gizmo,
-} from './render-common';
+} from './render-common.ts';
 
-export { AXIS_COLOR } from './render-common';
+export { AXIS_COLOR } from './render-common.ts';
 
 const COLOR_MOLD = 0x8a97b3;
 const COLOR_GHOST = 0x9ec2ff;
@@ -71,7 +71,10 @@ export class PackStage {
   private h = 1;
   private ro: ResizeObserver;
 
-  constructor(private canvas: HTMLCanvasElement) {
+  private canvas: HTMLCanvasElement;
+
+  constructor(canvas: HTMLCanvasElement) {
+    this.canvas = canvas;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;

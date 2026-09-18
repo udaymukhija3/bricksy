@@ -1,13 +1,13 @@
 // Shared kit for lab sketches: a single-view stage, voxel helpers, and small
 // predict-commit UI widgets. Every sketch is a few hundred lines on top of this.
 import * as THREE from 'three';
-import { MOVES, moveLabel, type Axis, type Cell, type Move } from '../polycube';
+import { MOVES, moveLabel, type Axis, type Cell, type Move } from '../polycube.ts';
 import {
   AXIS_COLOR, AXIS_VEC, COLOR_BG, Ticker, addLights, cubeGeo, edgeGeo, edgeMat, easeInOut, fitDistance, highlightGizmo,
   makeCubeMaterials, makeGizmo, placeCamera, renderGizmo, type Gizmo,
-} from '../render-common';
+} from '../render-common.ts';
 
-export * from '../render-common';
+export * from '../render-common.ts';
 export const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 export const cssColor = (n: number) => '#' + n.toString(16).padStart(6, '0');
 export const cellKey = (c: Cell) => c.join(',');
@@ -61,8 +61,10 @@ export class SketchStage {
   private w = 1;
   private h = 1;
   private ro: ResizeObserver;
+  private container: HTMLElement;
 
-  constructor(private container: HTMLElement, opts: StageOpts = {}) {
+  constructor(container: HTMLElement, opts: StageOpts = {}) {
+    this.container = container;
     this.canvas = document.createElement('canvas');
     container.append(this.canvas);
     this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
@@ -86,7 +88,7 @@ export class SketchStage {
     this.ro.observe(container);
     this.resize();
     this.renderer.setAnimationLoop(() => this.frame());
-    if (import.meta.env.DEV) (window as unknown as { stage: SketchStage }).stage = this; // dev: poke the live scene from the console
+    if (import.meta.env?.DEV) (window as unknown as { stage: SketchStage }).stage = this; // dev: poke the live scene from the console
   }
 
   place(azimuth: number, elevation: number, distance: number, target: THREE.Vector3 | [number, number, number]) {

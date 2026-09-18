@@ -1,6 +1,6 @@
 // Your learning curve, read back from the local event log: first-try accuracy and time to
 // commit, per difficulty level. Each result is attributed to the last `present` of that game.
-import { Log, type Event } from './log';
+import { Log, type Event } from './log.ts';
 
 export interface LevelStat { level: number; n: number; hits: number; medianMs: number | null }
 export interface Progress { levels: LevelStat[]; n: number; hits: number; days: number }

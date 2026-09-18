@@ -1,9 +1,9 @@
 // Mechanism: a gear train. The red gear turns clockwise. Which way does the last gear turn, and how fast?
 import * as THREE from 'three';
-import { SketchStage, choices, panel, h, mulberry32, pick, sleep } from './kit';
-import type { SketchDef, MountCtx } from './types';
-import { Log } from '../log';
-import { Run } from '../run';
+import { SketchStage, choices, panel, h, mulberry32, pick, sleep } from './kit.ts';
+import type { SketchDef, MountCtx } from './types.ts';
+import { Log } from '../log.ts';
+import { Run } from '../run.ts';
 
 const MODULE = 0.32;
 interface Gear { x: number; y: number; teeth: number; theta: number; omega: number; out?: { teeth: number }; mesh: THREE.Group }
@@ -31,7 +31,7 @@ function gearMesh(teeth: number, color: number, z = 0) {
 
 const pitch = (teeth: number) => (MODULE * teeth) / 2;
 
-function makeTrain(count: number, compounds: number, rng: () => number) {
+export function makeTrain(count: number, compounds: number, rng: () => number) {
   for (let tries = 0; tries < 300; tries++) {
     const gears: Omit<Gear, 'mesh'>[] = [];
     let heading = rng() * Math.PI * 2;
@@ -86,12 +86,14 @@ function makeTrain(count: number, compounds: number, rng: () => number) {
   throw new Error('no train');
 }
 
+/** Difficulty by level: more gears, then speed is asked, then compound gears (two wheels on one axle). */
+export const setup = (level: number) => ({ count: Math.min(7, 4 + Math.floor(level / 2)), askSpeed: level >= 3, compounds: level >= 8 ? 2 : level >= 5 ? 1 : 0 });
+
 function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   const log = new Log();
   const stage = new SketchStage(stageEl, { ground: null, fov: 30 });
   const run = new Run({ id: 'gears', name: 'Gears', icon: '⚙️', dailyRounds: 8 }, hudEl, stageEl);
   /** Difficulty by level: longer trains, then the speed question, then compound gears. */
-  const setup = (level: number) => ({ count: Math.min(7, 4 + Math.floor(level / 2)), askSpeed: level >= 3, compounds: level >= 8 ? 2 : level >= 5 ? 1 : 0 });
   let askSpeed = false, compounds = 0;
   let gears: Gear[] = [];
   const world = new THREE.Group();

@@ -1,14 +1,14 @@
 // Prototype 0 stage: two matched viewports (you / target) sharing one camera pose.
 import * as THREE from 'three';
-import type { Cell, Move } from './polycube';
-import type { CameraPose } from './puzzle';
+import type { Cell, Move } from './polycube.ts';
+import type { CameraPose } from './puzzle.ts';
 import {
   AXIS_VEC, COLOR_BG, Ticker, addLights, cubeGeo, edgeGeo, edgeMat, easeInOut, fitDistance, highlightGizmo,
   makeCubeMaterials, makeGizmo, placeCamera, renderGizmo, type Gizmo,
-} from './render-common';
-import type { Axis } from './polycube';
+} from './render-common.ts';
+import type { Axis } from './polycube.ts';
 
-export { AXIS_COLOR } from './render-common';
+export { AXIS_COLOR } from './render-common.ts';
 
 const SHAPE_RADIUS = 2.6;
 const LOOK_AT = new THREE.Vector3(0, -0.3, 0);

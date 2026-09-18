@@ -2,12 +2,12 @@
 // part its turns and an anchor cell, then build: the parts fly in one by one and the first
 // collision stops the build. The whole composition is the unit of prediction.
 import * as THREE from 'three';
-import type { Cell } from '../polycube';
-import { SketchStage, cubeGroup, turnQueue, panel, h, mulberry32, sleep, easeInOut, pulseMats, COLOR_OK, COLOR_BAD, cubeGeo, edgeGeo } from './kit';
-import type { SketchDef, MountCtx } from './types';
-import { Log } from '../log';
-import { Run } from '../run';
-import { makePuzzle, build as check, spec, cellKey, type Puzzle, type Plan } from './assemble-model';
+import type { Cell } from '../polycube.ts';
+import { SketchStage, cubeGroup, turnQueue, panel, h, mulberry32, sleep, easeInOut, pulseMats, COLOR_OK, COLOR_BAD, cubeGeo, edgeGeo } from './kit.ts';
+import type { SketchDef, MountCtx } from './types.ts';
+import { Log } from '../log.ts';
+import { Run } from '../run.ts';
+import { makePuzzle, build as check, spec, cellKey, type Puzzle, type Plan } from './assemble-model.ts';
 
 const PART_COLORS = [0xb56be0, 0x2ec4b6, 0xf28cb1, 0x9ec26b];
 const PART_NAMES = ['purple', 'teal', 'pink', 'olive'];

@@ -1,10 +1,10 @@
 // Full-page frame for a game: header with HUD slot and a help button, stage, panel, and a
 // footer with the log export. Help shows why the game exists, the controls, and your own
 // learning curve read from the local log.
-import { h } from './kit';
-import { Log } from '../log';
-import { progress } from '../progress';
-import type { SketchDef } from './types';
+import { h } from './kit.ts';
+import { Log } from '../log.ts';
+import { progress } from '../progress.ts';
+import type { SketchDef } from './types.ts';
 
 const fmtMs = (ms: number | null) => (ms == null ? '—' : ms < 10000 ? `${(ms / 1000).toFixed(1)}s` : `${Math.round(ms / 1000)}s`);
 

@@ -1,10 +1,10 @@
 // Fold: a cube net with symbols. Which face ends up opposite the marked one? Commit, then it folds.
 import * as THREE from 'three';
-import { NETS, hinges, hingeRotation, opposite, type Net } from './nets';
-import { SketchStage, panel, h, mulberry32, pick, sleep, easeInOut } from './kit';
-import type { SketchDef, MountCtx } from './types';
-import { Log } from '../log';
-import { Run } from '../run';
+import { NETS, hinges, hingeRotation, opposite, type Net } from './nets.ts';
+import { SketchStage, panel, h, mulberry32, pick, sleep, easeInOut } from './kit.ts';
+import type { SketchDef, MountCtx } from './types.ts';
+import { Log } from '../log.ts';
+import { Run } from '../run.ts';
 
 const SYMBOLS = ['●', '▲', '■', '★', '◆', '✚'];
 const COLORS = ['#e5484d', '#46a758', '#3e8ff5', '#f5a524', '#b56be0', '#2ec4b6'];

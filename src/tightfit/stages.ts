@@ -1,14 +1,14 @@
 // Tight Fit stages. Each mounts into the shared stage/panel, runs to a result, and cleans up.
 import * as THREE from 'three';
-import { applyMoves, normalize, rotateCell, moveLabel, type Cell, type Move } from '../polycube';
-import { PackStage } from '../pack-scene';
+import { applyMoves, normalize, rotateCell, moveLabel, type Cell, type Move } from '../polycube.ts';
+import { PackStage } from '../pack-scene.ts';
 import {
   SketchStage, cubeGroup, voxelMesh, turnQueue, panel, h, sleep, pulseMats, easeIn, easeOut, COLOR_OK, COLOR_BAD,
   cubeGeo, edgeGeo,
-} from '../lab/kit';
-import { makeLoad, land, makeDoorway, passes, makeCorner, type Body } from './model';
-import { PLATE, placeSil } from '../smuggle-model';
-import { Sfx } from '../sfx';
+} from '../lab/kit.ts';
+import { makeLoad, land, makeDoorway, passes, makeCorner, type Body } from './model.ts';
+import { PLATE, placeSil } from '../smuggle-model.ts';
+import { Sfx } from '../sfx.ts';
 
 export interface StageCtx {
   stageEl: HTMLElement;

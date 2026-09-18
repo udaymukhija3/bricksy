@@ -1,9 +1,9 @@
 // Slice: a solid and a cutting plane. Predict the cross-section before the blade goes through.
 import * as THREE from 'three';
-import { SketchStage, choices, panel, h, mulberry32, pick, sleep, easeInOut, easeOut } from './kit';
-import type { SketchDef, MountCtx } from './types';
-import { Log } from '../log';
-import { Run } from '../run';
+import { SketchStage, choices, panel, h, mulberry32, pick, sleep, easeInOut, easeOut } from './kit.ts';
+import type { SketchDef, MountCtx } from './types.ts';
+import { Log } from '../log.ts';
+import { Run } from '../run.ts';
 
 type P2 = [number, number];
 interface Solid { name: string; geo: THREE.BufferGeometry; tier: number }
@@ -154,11 +154,40 @@ function svgOf(s: Section, scale: number) {
   return `<svg viewBox="0 0 100 100"><path d="${paths}" fill="#6b8fd6" fill-opacity="0.35" stroke="#9fb8ff" stroke-width="2" fill-rule="evenodd"/></svg>`;
 }
 
+let SOLIDS_CACHE: Solid[] | null = null;
+const SOLIDS_ALL = () => (SOLIDS_CACHE ??= solids());
+
+export interface SliceCase { solid: Solid; cut: Cut; answer: Section; options: { id: string; s: Section }[]; correctId: string }
+
+/** A solid, a cut, its true section and three visibly different distractors (other cuts of this solid first, then other solids). */
+export function pickCase(level: number, rng: () => number): SliceCase | null {
+  const t = tiers(level);
+  for (let tries = 0; tries < 200; tries++) {
+    const SOLIDS = SOLIDS_ALL();
+    const solid = pick(SOLIDS.filter((x) => x.tier <= t.solid), rng);
+    const cut = pick(CUTS.filter((x) => x.tier <= t.cut), rng);
+    const answer = section(solid.geo, cut);
+    if (!answer) continue;
+    const pool: Section[] = [];
+    for (const c of CUTS) if (c !== cut) { const s = section(solid.geo, c); if (s) pool.push(s); }
+    for (const o of SOLIDS) if (o !== solid) { const s = section(o.geo, cut); if (s) pool.push(s); }
+    const chosen: Section[] = [];
+    for (const s of pool.sort(() => rng() - 0.5)) {
+      if (similar(s, answer) || chosen.some((c) => similar(c, s))) continue;
+      chosen.push(s);
+      if (chosen.length === 3) break;
+    }
+    if (chosen.length < 3) continue;
+    const all = [answer, ...chosen].map((s, i) => ({ id: String(i), s })).sort(() => rng() - 0.5);
+    return { solid, cut, answer, options: all, correctId: all.find((o) => o.s === answer)!.id };
+  }
+  return null;
+}
+
 function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   const log = new Log();
   const stage = new SketchStage(stageEl, { ground: -1.8 });
   const run = new Run({ id: 'cut', name: 'Cut', icon: '🔪', dailyRounds: 8 }, hudEl, stageEl);
-  const SOLIDS = solids();
   const world = new THREE.Group();
   stage.scene.add(world);
   const choiceBox = h('div');
@@ -167,34 +196,17 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   panelEl.append(h('div#actions', {}, commitB));
   const P = panel(panelEl);
   let C: ReturnType<typeof choices<string>> | null = null;
-  let current!: { solid: Solid; cut: Cut; answer: Section; options: { id: string; s: Section }[]; correctId: string };
+  let current: SliceCase | null = null;
   const solidMat = () => new THREE.MeshStandardMaterial({ color: 0x6b8fd6, roughness: 0.55, metalness: 0.05 });
   const frame = () => stage.place(35, 22, stage.fit(2.9), [0, -0.1, 0]);
   stage.onResize = frame;
 
   function newCase() {
     const rng = mulberry32(run.nextSeed());
-    const t = tiers(run.level);
-    for (let tries = 0; tries < 200; tries++) {
-      const solid = pick(SOLIDS.filter((x) => x.tier <= t.solid), rng);
-      const cut = pick(CUTS.filter((x) => x.tier <= t.cut), rng);
-      const answer = section(solid.geo, cut);
-      if (!answer) continue;
-      // Distractors: other cuts of the same solid first, then other solids — all visibly different.
-      const pool: Section[] = [];
-      for (const c of CUTS) if (c !== cut) { const s = section(solid.geo, c); if (s) pool.push(s); }
-      for (const o of SOLIDS) if (o !== solid) { const s = section(o.geo, cut); if (s) pool.push(s); }
-      const chosen: Section[] = [];
-      for (const s of pool.sort(() => rng() - 0.5)) {
-        if (similar(s, answer) || chosen.some((c) => similar(c, s))) continue;
-        chosen.push(s);
-        if (chosen.length === 3) break;
-      }
-      if (chosen.length < 3) continue;
-      const all = [answer, ...chosen].map((s, i) => ({ id: String(i), s })).sort(() => rng() - 0.5);
-      current = { solid, cut, answer, options: all, correctId: all.find((o) => o.s === answer)!.id };
-      break;
-    }
+    const next = pickCase(run.level, rng);
+    if (!next) { P.message('No cut could be generated — try the next round.', 'bad'); if (!current) { run.miss(); newCase(); return; } }
+    else current = next;
+    if (!current) return;
     const { solid, cut, options } = current;
     world.clear();
     const mesh = new THREE.Mesh(solid.geo, solidMat());
@@ -219,16 +231,17 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   }
 
   async function commit() {
-    if (!C?.picked) { C?.el.classList.add('shake'); setTimeout(() => C?.el.classList.remove('shake'), 300); return; }
+    if (!C?.picked || !current) { C?.el.classList.add('shake'); setTimeout(() => C?.el.classList.remove('shake'), 300); return; }
+    const cur = current;
     const said = C.picked;
-    const ok = said === current.correctId;
+    const ok = said === cur.correctId;
     C.enabled = false;
     commitB.disabled = true;
     log.push('result', { sketch: 'slice', ok });
 
     // The cut: two clipped copies, the upper half lifts away, both show the section face.
     const { solid, answer } = current;
-    const cut = { ...current.cut, d: current.cut.d + 0.0137 };
+    const cut = { ...cur.cut, d: cur.cut.d + 0.0137 };
     const mesh = world.children[0] as THREE.Mesh;
     const upper = new THREE.Mesh(solid.geo, solidMat()), lower = new THREE.Mesh(solid.geo, solidMat());
     upper.material.clippingPlanes = [new THREE.Plane(cut.n.clone(), -cut.d)];
@@ -262,7 +275,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
       upperG.position.copy(cut.n).multiplyScalar(k);
       upper.material.clippingPlanes![0].constant = -cut.d + k;
     });
-    C.mark(current.correctId, 'right');
+    C.mark(cur.correctId, 'right');
     if (!ok) C.mark(said, 'wrong');
     ok ? run.hit() : run.miss();
     P.message(ok ? 'That is the cut.' : 'The blade disagrees — the orange face is the real cross-section.', ok ? 'ok' : 'bad');

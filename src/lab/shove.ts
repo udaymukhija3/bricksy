@@ -1,12 +1,12 @@
 // Shove: push and turn one awkward crate into its socket. You commit a plan of 2–4 moves; it
 // executes without pause and stops at the first blocked move. No undo, a move budget of par + 3.
 import * as THREE from 'three';
-import type { Cell } from '../polycube';
-import { SketchStage, cubeGroup, voxelMesh, panel, h, mulberry32, sleep, easeInOut, easeOut, pulseMats, COLOR_OK, COLOR_BAD } from './kit';
-import type { SketchDef, MountCtx } from './types';
-import { Log } from '../log';
-import { Run } from '../run';
-import { apply, makeLevel, spec, solved, crateCells, key, isTurn, MOVE_GLYPH, DIRS, type Level, type State, type Move, type P } from './shove-model';
+import type { Cell } from '../polycube.ts';
+import { SketchStage, cubeGroup, voxelMesh, panel, h, mulberry32, sleep, easeInOut, easeOut, pulseMats, COLOR_OK, COLOR_BAD } from './kit.ts';
+import type { SketchDef, MountCtx } from './types.ts';
+import { Log } from '../log.ts';
+import { Run } from '../run.ts';
+import { apply, makeLevel, spec, solved, crateCells, key, isTurn, MOVE_GLYPH, DIRS, type Level, type State, type Move, type P } from './shove-model.ts';
 
 const SLACK = 3;
 const MAX_PLAN = 4, MIN_PLAN = 2;
