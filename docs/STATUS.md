@@ -18,12 +18,14 @@ with controls, *why this game* and the player's learning curve · phone layout �
 | 🔦 Shadows | ✓ | 5→13 cubes, 3³ → 4³ | diff grids; *Fix it (practice)* until it casts right; *Show the object* | miss → fix → fixed | — |
 | 🔢 Count | ✓ | 3×3 → 6×6, heights 3→4 | 540° reveal, hidden in orange | L9 loads | plateau after L14 |
 | ⚡ Flash | ✓ | 4→8 cubes, 3 → 1.2 s, turned view | ghost overlay; your extra cubes turn red | L0 played | — |
-| 🎲 Tilt | ✓ | 4→5 rooms, 3→5 loose | cubes fall, socket pulses | L0 played | plateau after L12; only one asked cube |
-| ⚙️ Gears | ✓ | 4→7 gears, speed at L3, compounds at L5/L8 | train runs, marks | L14 loads | plateau after L8 |
+| 🎲 Tilt | ✓ | 4→6 rooms, 3→6 loose; two sockets from L10 | cubes fall, sockets pulse, verdict names both | L10 two-socket round | — |
+| ⚙️ Gears | ✓ | 4→9 gears, speed at L3, compounds at L5/L8/L12 | train runs, marks | L13 loads | plateau after L12 |
 | 🏗️ Shove | ✓ | par 3→18, turn needed at L4, box at L6, L4/T4 crates at L8, two crates at L12 | *Show solution* | solved at par, blocked plan, box replay, two-crate replay | heavy levels take up to ~0.4 s to generate |
-| 🧭 Wayfind | ✓ | 4×4 → 9×9, loops 0→5, random heading at L3 | trail on the map | walk, dead end, give up | no "rotated map" variant; hit = zero wrong turns may be harsh at 9×9 |
+| 🧭 Wayfind | ✓ | 4×4 → 9×9, loops 0→5, random heading at L3; one wrong turn forgiven at 8×8+ | trail + a shortest route on the map | walk, dead end, give up | no "rotated map" variant |
 | ♟️ Mate | ✓ | any → turn → tilt → 3 pieces → mate in two at L8 → a guard at L10 | escape squares, *Show answer* (both plies) | mate-in-one hit, mate-in-two miss + replay, guard round | guard is static; mate in two only in endless |
 | 🔁 Match | prototype 0, deliberately bare (control condition) | 5 levels, own progression | replay / reveal | — | not a product by design |
+
+Later still: daily archive (`?day=N`), hub share-the-day and seven-day strip, Tight Fit endless shift, two-crate Shove, Mate guard, three-way Mirror, Tilt two sockets, Assemble grid anchors, Shadows practice, generator sweep.
 
 Cross-cutting, shipped today: run loop with reload-safe dailies, lock + result card (streaks,
 histogram, countdown, next-daily handoff), hub scorecard, `#N` share text, Open Graph tags,
