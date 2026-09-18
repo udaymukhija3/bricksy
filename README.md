@@ -9,21 +9,30 @@ and an **endless** mode (lives, score, best).
 | --- | --- | --- | --- |
 | 🚚 **Tight Fit** | `/tightfit/` | a chain: load the van → doorway → the corner, on one item | ten jobs, three stars each (the saga) |
 | 📦 **Pack** | `/pack/` | a turn sequence | drops the piece; fits or collides |
+| 🧱 **Smuggle** | `/smuggle/` | turns for the next wall (orientation carries over) | flies through or bonks |
+| 🪞 **Mirror** | `/mirror/` | "rotation" or "mirror" | turns A to its best fit; uncovered cells show red |
+| 🧩 **Assemble** | `/assemble/` | turns and an anchor for every part | parts fly in one by one; the first collision stops the build |
 | 🔪 **Cut** | `/cut/` | one of four outlines | cuts the solid, lifts the half away |
 | 📐 **Fold** | `/fold/` | which face ends opposite | folds the net, tumbles the cube |
+| 🔦 **Shadows** | `/shadows/` | a 3D build, never seeing its silhouettes | casts your build's silhouettes next to the target's |
+| 🔢 **Count** | `/count/` | a cube count | turns the stack; hidden cubes in orange |
+| ⚡ **Flash** | `/flash/` | a shape rebuilt from memory | overlays the original as a ghost |
 | 🎲 **Tilt** | `/tilt/` | which cube reaches the socket | turns the room; cubes fall |
-| 🪞 **Mirror** | `/mirror/` | "rotation" or "mirror" | turns A to its best fit; uncovered cells show red |
 | ⚙️ **Gears** | `/gears/` | direction (then speed) of the last gear | runs the train |
-| 🧱 **Smuggle** | `/smuggle/` | turns for the next wall (orientation carries over) | flies through or bonks |
+| 🏗️ **Shove** | `/shove/` | a plan of 2–4 moves for a crate | executes it; stops at the first blocked move |
+| 🧭 **Wayfind** | `/wayfind/` | a direction at every junction, from a map you saw for seconds | walks the corridor; dead ends are real |
+| ♟️ **Mate** | `/mate/` | one slide or turn of one piece | reveals the new shadows; mate or not |
 
-`/` is the hub. `/lab.html` keeps the sketches that aren't games yet
-(Projection Detective, Hidden Structure, Copycat) and the concept pages.
-`/match.html` is prototype 0, the control condition.
+`/` is the hub, grouped by the kind of spatial operation each game asks for
+(*turn it · see inside it · move through it*). `/lab.html` is the catalogue
+with each game's skill line. `/match.html` is prototype 0, the control
+condition — the pack kernel without the packing framing, deliberately left
+without the run loop so the two can be compared.
 
 ```bash
 npm install
 npm run dev      # http://localhost:5173
-npm test         # exact-geometry checks: rotations, cavities/landing, cube-net folding
+npm test         # exact-geometry checks: rotations, cavities/landing, cube nets, and every game's pure model
 ```
 
 Live: https://udaymukhija3.github.io/bricksy/ — deployed by `.github/workflows/pages.yml`
@@ -90,47 +99,33 @@ this without mental rotation?"*:
   with the evidence of where it landed. Skipping is allowed; it already cost a life.
 - **Fits auto-advance** after ~1s to keep rhythm; misses stop and wait.
 
-## The lab (`/lab.html`)
+## The other games
 
-One sketch per idea from the brainstorm, deduplicated to 15, so they can be
-compared by playing rather than by argument. Every sketch keeps the rule. The
-card's *skill* line is the cognitive operation the mechanic is meant to require.
+One game per idea from the brainstorm, fifteen in all. Every game keeps the
+rule; the *skill* line is the cognitive operation the mechanic is meant to
+require, and the design test for each was *"could someone get good at this
+without it?"*
 
-| Sketch | Skill | You commit to… | Reality then… |
-| --- | --- | --- | --- |
-| **Pack** (flagship, `/`) | mental rotation | a turn sequence | drops the piece; fits or collides |
-| Transform Combo (`/match.html`) | rotation sequencing | a turn sequence | turns the shape; matches or not |
-| Shape Smuggler | rotation planning | turns for the next wall (orientation carries over) | flies through or bonks; par is computed by search |
-| Mirror Trap | rotation vs reflection | "rotation" or "mirror" | turns A to its best fit and slides it onto B; uncovered cells show red |
-| Projection Detective | 2D → 3D reconstruction | a 3D build, never seeing its silhouettes | casts your build's silhouettes next to the target's |
-| Hidden Structure | inference behind occlusion | a cube count | turns the stack; hidden cubes in orange |
-| Copycat | spatial memory | a rebuilt shape | overlays the original as a ghost |
-| Slice | cross-section prediction | one of four outlines | cuts the solid and lifts the half away |
-| Gravity Rooms | motion under a rotated frame | which cube reaches the socket | turns the room; cubes fall |
-| Fold | net → solid | which face ends opposite | folds the net; tumbles the cube |
-| Mechanism | motion through a system | direction (and speed) of the last gear | runs the train |
-| Spatial Sokoban · Perspective Maze · Assembly · Rotation Chess | — | concept: scene + mechanic + bypass analysis | — |
+| Game | Skill | Bypass defence |
+| --- | --- | --- |
+| **Smuggle** | rotation planning | orientation carries over between walls, so each wall is planned from where the last left you; par by 0-1 BFS |
+| **Mirror** | rotation vs reflection | only chiral, non-planar shapes (planar shapes flip over in 3D and are never chiral); starts at 5 cubes |
+| **Assemble** | part–whole composition | every part gets turns and an anchor *before* anything moves; the first collision stops the build, so one part at a time with live feedback is impossible |
+| **Cut** | cross-section prediction | distractors are other real cross-sections, filtered to be visibly different; planes nudged off the lattice |
+| **Fold** | net → solid | all 11 nets, tested |
+| **Shadows** | 2D → 3D reconstruction | your build's silhouettes stay hidden until commit (else it collapses into Picross 3D); the cube count is fixed so the maximal-object trick fails |
+| **Count** | inference behind occlusion | only stacks where every column's top is visible are served, so the count is inferable; ≥2 cubes hidden; visibility is a pure orthographic model so the daily is the same on every screen |
+| **Flash** | spatial memory | cube count, then look time, then a 90° view turn before you build so memory has to survive a rotation |
+| **Tilt** | motion under a rotated frame | ≥2 cubes move and the socket is empty beforehand |
+| **Gears** | motion through a system | direction, then speed |
+| **Shove** | planning under irreversible moves | plans of 2–4 moves execute without pause and stop at the first blocked move; no undo; budget par + 3; levels are generated from the reachable state space so par is exact and later levels need a turn |
+| **Wayfind** | perspective taking · mental maps | mazes get loops so wall-following is a bad strategy; a hit is a walk with *no* wrong turn; later the start heading no longer matches the map's up, so two frames must be aligned |
+| **Mate** | multi-step transformation lookahead | attack = the piece's shadow minus its anchor; the post-move shadow is never previewed; puzzles are brute-forced to a unique answer, forced to be a turn, then a turn about a horizontal axis (the shadow changes shape) |
 
-Bypass notes that shaped the sketches:
-
-- **Projection Detective** would collapse into Picross 3D (pure cell logic) if the
-  player could see their own build's silhouettes. They can't until commit, and
-  the cube count is fixed so the "maximal object" trick doesn't work.
-- **Shape Smuggler** keeps orientation between walls, so each wall is planned
-  from where the last one left you — not a fresh puzzle.
-- **Mirror Trap** uses only chiral, non-planar shapes; planar shapes can be
-  flipped over in 3D and are never chiral. (Also: no 4-cube shape is both
-  non-planar and asymmetric — the two screw tetracubes are 2-fold symmetric —
-  so sketches that need chirality or asymmetry start at 5 cubes.)
-- **Slice** distractors are other real cross-sections (of the same solid, or the
-  same cut on another solid), filtered to be visibly different; plane offsets
-  are nudged off the lattice so no cut passes exactly through mesh vertices.
-- **Hidden Structure** only serves stacks where every column's top is visible,
-  so the count is inferable, and where at least two cubes are hidden.
-
-`src/lab/kit.ts` is the shared toolkit (single-view stage, voxel meshes, turn
-queue, layer builder, grid picker, choices); `src/lab/nets.ts` is a pure cube-net
-folding model with tests for all 11 nets.
+Shared kit: `src/lab/kit.ts` (single-view stage, voxel meshes, turn queue,
+layer builder, grid picker, choices). Pure, tested models sit next to the
+games that use them: `count-model`, `shove-model`, `wayfind-model`,
+`assemble-model`, `mate-model`, and `nets` (cube folding).
 
 ## Prototype 0 — match (`/match.html`)
 
@@ -174,7 +169,8 @@ Hovering a turn button lights that axis in the gizmo and flips its arrow for −
 - `src/pack-scene.ts`, `src/scene.ts` — Three.js stages for pack / match
 - `src/main.ts`, `src/match.ts` — game loops
 - `src/sfx.ts` — synthesised sound (no assets) · `src/log.ts` — event log
-- `src/lab/` — the lab: `index.ts` (router + cards), `kit.ts`, `nets.ts`, one file per sketch, `concepts.ts`
+- `src/games.ts` — the roster, grouped · `src/game.ts` — entry for every game page (`<html data-game>`)
+- `src/lab/` — `kit.ts`, one file per game, `*-model.ts` pure models with `*-model.test.ts`, `index.ts` (catalogue)
 
 ## What these prototypes should tell us
 
@@ -193,6 +189,6 @@ Hovering a turn button lights that axis in the gizmo and flips its arrow for −
 - Removing the gizmo (axis convention is prerequisite knowledge, not the skill).
 - Translation / multiple candidate holes in pack (would add placement, diluting rotation).
 - The transfer test: static drawings of the same problems, no 3D.
-- Playable versions of the four concepts (each is a whole game's worth of level design).
-- Lives/score wrappers on the lab sketches — they are deliberately bare so the
-  mechanic can be judged on its own.
+- Two-crate rooms in Shove, an opponent in Mate, more than three parts in
+  Assemble: each game ships with the smallest ruleset that makes its skill
+  necessary; the dials above are where difficulty grows.

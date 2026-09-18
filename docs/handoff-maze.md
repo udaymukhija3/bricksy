@@ -1,6 +1,8 @@
 # Handoff — Perspective Maze
 
-Branch: `maze`. Entry: concept page `/lab.html#/maze` (`src/lab/concepts.ts`). Nothing playable yet.
+> **Shipped 2026-09-18 as Wayfind** — `/wayfind/`, on the hub, with the daily/endless run loop. Code: `src/lab/wayfind.ts` + `wayfind-model.ts` (tested: connectivity, loop count, shortest walk replays with no wrong turn). What shipped: block-grid mazes with loops, corridor auto-walk between decision cells, grading per decision against BFS distance, a hit = no wrong turn; swoop from map to eyes on early levels, a cut later; random start heading from level 3 (the frame-alignment condition); the trail is drawn on the map at the end. The sections below are the original brief; the open questions still stand.
+
+Branch: `maze`. Entry: `/wayfind/`.
 
 ## The spatial concept
 
@@ -43,5 +45,5 @@ phase are three systems. Doable in a session; not a sketch-sized job.
 ## Run
 
 ```bash
-npm install && npm run dev   # http://localhost:5173/lab.html#/maze
+npm install && npm run dev   # http://localhost:5173/wayfind/
 ```

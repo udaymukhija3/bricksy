@@ -1,6 +1,6 @@
 # Handoff — Mechanism (gear trains)
 
-Branch: `gears`. Entry: `/lab.html#/gears` (`src/lab/gears.ts`).
+Branch: `gears`. Entry: `/gears/` (`src/lab/gears.ts`).
 
 ## The spatial concept
 
@@ -48,5 +48,5 @@ bevel gears, where parity alone does not answer.
 ## Run
 
 ```bash
-npm install && npm run dev   # http://localhost:5173/lab.html#/gears
+npm install && npm run dev   # http://localhost:5173/gears/
 ```

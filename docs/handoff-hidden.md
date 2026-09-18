@@ -1,6 +1,8 @@
 # Handoff — Hidden Structure
 
-Branch: `hidden`. Entry: `/lab.html#/hidden` (`src/lab/hidden.ts`).
+> **Shipped 2026-09-18 as Count** — `/count/`, on the hub, with the daily/endless run loop. Code: `src/lab/count.ts` + `count-model.ts` (tested). What shipped: the hidden-cube test is a pure orthographic model with a narrow-FOV stage to match, so a daily is the same stack on every screen; the reveal turns the stack 540° so it ends with its back to you; difficulty: 3×3 → 4×4 → 5×5 footprints, heights 3 → 4. The sections below are the original brief; the open questions still stand.
+
+Branch: `hidden`. Entry: `/count/` (`src/lab/count.ts`).
 
 ## The spatial concept
 
@@ -45,5 +47,5 @@ footprints and height 4 makes "visible + a bit" unreliable.
 ## Run
 
 ```bash
-npm install && npm run dev   # http://localhost:5173/lab.html#/hidden
+npm install && npm run dev   # http://localhost:5173/count/
 ```

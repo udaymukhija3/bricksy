@@ -1,6 +1,8 @@
 # Handoff — Assembly (3D Tangram / Jigsaw)
 
-Branch: `assembly`. Entry: concept page `/lab.html#/assembly` (`src/lab/concepts.ts`). Nothing playable yet.
+> **Shipped 2026-09-18 as Assemble** — `/assemble/`, on the hub, with the daily/endless run loop. Code: `src/lab/assemble.ts` + `assemble-model.ts` (tested: partition, solution builds, wrong anchors/overlaps fail). What shipped: targets cut into 2–3 connected parts by multi-source growth, each shown after a scramble; a turn queue per part (`turnQueue` gained `allowEmpty`) plus an anchor picked by clicking the ghost — repeat clicks cycle to occluded cells; parts fly in on commit and the first collision stops the build. The sections below are the original brief; the open questions still stand.
+
+Branch: `assembly`. Entry: `/assemble/`.
 
 ## The spatial concept
 
@@ -44,5 +46,5 @@ The anchor-picking UI is the design problem; the geometry is already in
 ## Run
 
 ```bash
-npm install && npm run dev   # http://localhost:5173/lab.html#/assembly
+npm install && npm run dev   # http://localhost:5173/assemble/
 ```

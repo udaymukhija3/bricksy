@@ -126,7 +126,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     P.message('');
     P.clearPost();
     goB.disabled = undoB.disabled = clearB.disabled = giveUpB.disabled = false;
-    hintEl.textContent = `Get the crate onto the green socket, pivot on the bright cell. Turns pivot on the crate's orange cube; you must be next to it.`;
+    hintEl.textContent = `Crate onto the green socket, orange pivot cube on the bright cell. You turn it from a cell next to it.`;
     log.push('present', { sketch: 'shove', mode: run.mode, level: run.level, room: { w: level.w, h: level.h, walls: level.walls, shape: level.shape, start: level.start, socket: level.socket, par: level.par }, budget });
   }
 

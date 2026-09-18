@@ -1,6 +1,6 @@
 # Handoff — Gravity Rooms
 
-Branch: `gravity`. Entry: `/lab.html#/gravity` (`src/lab/gravity.ts`).
+Branch: `gravity`. Entry: `/tilt/` (`src/lab/gravity.ts`).
 
 ## The spatial concept
 
@@ -47,5 +47,5 @@ and cube-on-cube stacking are what keep the simulation necessary. Keep them.
 ## Run
 
 ```bash
-npm install && npm run dev   # http://localhost:5173/lab.html#/gravity
+npm install && npm run dev   # http://localhost:5173/tilt/
 ```

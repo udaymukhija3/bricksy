@@ -1,6 +1,8 @@
 # Handoff — Copycat
 
-Branch: `copycat`. Entry: `/lab.html#/copycat` (`src/lab/copycat.ts`).
+> **Shipped 2026-09-18 as Flash** — `/flash/`, on the hub, with the daily/endless run loop. Code: `src/lab/flash.ts`. What shipped: difficulty table by level: cubes 4→7, look time 3→1.5 s, then the 90° view turn before building. The sections below are the original brief; the open questions still stand.
+
+Branch: `copycat`. Entry: `/flash/` (`src/lab/flash.ts`).
 
 ## The spatial concept
 
@@ -43,5 +45,5 @@ before and after the turn: a drop that recovers with practice is the signal.
 ## Run
 
 ```bash
-npm install && npm run dev   # http://localhost:5173/lab.html#/copycat
+npm install && npm run dev   # http://localhost:5173/flash/
 ```

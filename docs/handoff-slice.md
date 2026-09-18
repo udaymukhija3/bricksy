@@ -1,6 +1,6 @@
 # Handoff — Slice
 
-Branch: `slice`. Entry: `/lab.html#/slice` (`src/lab/slice.ts`).
+Branch: `slice`. Entry: `/cut/` (`src/lab/slice.ts`).
 
 ## The spatial concept
 
@@ -50,5 +50,5 @@ visibly distinct from the answer. Memorisation is blocked by the product space
 ## Run
 
 ```bash
-npm install && npm run dev   # http://localhost:5173/lab.html#/slice
+npm install && npm run dev   # http://localhost:5173/cut/
 ```

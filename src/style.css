@@ -237,3 +237,8 @@ input.num::-webkit-outer-spin-button, input.num::-webkit-inner-spin-button { -we
 /* ---- Mate ---- */
 .dpad.slides { grid-template-columns: repeat(4, 1fr); max-width: 480px; }
 button.mv.picked { outline: 2px solid var(--accent); }
+
+/* ---- hub groups ---- */
+.group { margin-top: 10px; }
+.group h2 { margin: 0 0 2px; font-size: 16px; }
+.group p { margin: 0; font-size: 13px; }

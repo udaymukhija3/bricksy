@@ -119,7 +119,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     commitB.disabled = false;
     P.message('');
     P.clearPost();
-    hintEl.textContent = `Blue tiles are attacked now. Find the one move that leaves the king no safe square — its own cell and every neighbour covered.`;
+    hintEl.textContent = `Blue tiles are attacked now. One move covers the king's cell and every neighbour.`;
     log.push('present', { sketch: 'mate', mode: run.mode, level: run.level, n: puzzle.n, king: puzzle.king, pieces: puzzle.pieces });
   }
 

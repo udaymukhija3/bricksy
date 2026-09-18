@@ -1,6 +1,6 @@
 # Handoff — Pack (flagship)
 
-Branch: `pack`. Entry: `/` (`index.html` → `src/main.ts`). Sibling sketch: Shape Smuggler (`/lab.html#/smuggler`).
+Branch: `pack`. Entry: `/pack/` (`pack/index.html` → `src/main.ts`). Sibling sketch: Shape Smuggler (`/smuggle/`).
 
 ## The spatial concept
 

@@ -1,50 +1,27 @@
-// The lab: one sketch per idea, hash-routed. Sketches register in ROSTER.
+// The lab: the catalogue with each game's skill line, plus prototype 0. Every idea from the
+// brainstorm is now a game with its own page; this page is the index that keeps the skill
+// each mechanic is meant to require next to the mechanic.
 import '../style.css';
 import '../pwa';
 import { h } from './kit';
-import { renderFrame } from './frame';
 import type { SketchDef } from './types';
-import { GAMES, PACK } from '../games';
-import { concepts } from './concepts';
+import { GAMES, PACK, TIGHT_FIT } from '../games';
 
 const ROSTER: SketchDef[] = [
+  TIGHT_FIT,
   PACK,
   ...GAMES.map((g) => ({ ...g, href: `${g.id}/` })),
-  { id: 'match', title: 'Transform Combo', tagline: 'Find the turn sequence that maps one shape onto another.', skill: 'rotation sequencing', status: 'playable', href: 'match.html' },
-  ...concepts,
+  { id: 'match', title: 'Transform Combo', tagline: 'Prototype 0, the control condition: the pack kernel without the packing framing. Turn the left shape to match the right one.', skill: 'rotation sequencing', status: 'playable', href: 'match.html' },
 ];
 
 const app = document.getElementById('app')!;
-let teardown: (() => void) | null = null;
-
-function renderIndex() {
-  const cards = ROSTER.map((s) => {
-    const link = s.href ?? `#/${s.id}`;
-    return h('a.card', { href: link },
-      h('div.card-top', {}, h('span.pill.' + s.status, {}, s.href && s.status !== 'concept' ? 'game' : s.status), h('span.skill', {}, s.skill)),
-      h('h3', {}, (s.icon ? s.icon + ' ' : '') + s.title),
-      h('p', {}, s.tagline),
-    );
-  });
-  app.replaceChildren(
-    h('header', {}, h('div.brand', {}, 'bricksy ', h('span.sub', {}, 'lab · one sketch per idea')), h('div.hud', {}, h('a', { href: './' }, 'games ↗'))),
-    h('p#instructions', {}, 'Every sketch keeps one rule: ', h('b', {}, 'predict → commit → reality executes'), '. The point is to see which mechanics make the spatial skill necessary, and which of them feel like a game.'),
-    h('div.cards', {}, ...cards),
-  );
-}
-
-function renderSketch(def: SketchDef) {
-  teardown = renderFrame(app, def, '#/', '← lab');
-}
-
-function route() {
-  teardown?.();
-  teardown = null;
-  const id = location.hash.replace(/^#\/?/, '');
-  const def = ROSTER.find((s) => s.id === id && s.mount && !s.href);
-  if (def) renderSketch(def);
-  else renderIndex();
-  window.scrollTo(0, 0);
-}
-window.addEventListener('hashchange', route);
-route();
+const cards = ROSTER.map((s) => h('a.card', { href: s.href },
+  h('div.card-top', {}, h('span.pill.' + s.status, {}, s.status === 'flagship' ? 'flagship' : 'game'), h('span.skill', {}, s.skill)),
+  h('h3', {}, (s.icon ? s.icon + ' ' : '') + s.title),
+  h('p', {}, s.tagline),
+));
+app.replaceChildren(
+  h('header', {}, h('div.brand', {}, 'bricksy ', h('span.sub', {}, 'lab · one game per idea')), h('div.hud', {}, h('a', { href: './' }, 'games ↗'))),
+  h('p#instructions', {}, 'Every game keeps one rule: ', h('b', {}, 'predict → commit → reality executes'), '. The skill line under each card is the cognitive operation the mechanic is meant to require — the design test for every one was "could someone get good at this without it?"'),
+  h('div.cards', {}, ...cards),
+);

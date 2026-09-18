@@ -1,6 +1,8 @@
 # Handoff — Spatial Sokoban
 
-Branch: `sokoban`. Entry: concept page `/lab.html#/sokoban` (`src/lab/concepts.ts`). Nothing playable yet.
+> **Shipped 2026-09-18 as Shove** — `/shove/`, on the hub, with the daily/endless run loop. Code: `src/lab/shove.ts` + `shove-model.ts` (tested: apply/turn rules, solver, generator par exactness, needTurn). What shipped: one crate (L3, later L4/T4), turns about its pivot from an adjacent cell, plans of 2–4 moves, no undo, budget par + 3, BFS-generated sockets at exact par; interior only is drawn with a fence at the border; two-crate rooms are the next dial. The sections below are the original brief; the open questions still stand.
+
+Branch: `sokoban`. Entry: `/shove/`.
 
 ## The spatial concept
 
@@ -45,5 +47,5 @@ would be judged on their design rather than the mechanic.
 ## Run
 
 ```bash
-npm install && npm run dev   # http://localhost:5173/lab.html#/sokoban
+npm install && npm run dev   # http://localhost:5173/shove/
 ```

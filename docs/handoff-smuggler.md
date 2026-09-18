@@ -1,6 +1,6 @@
 # Handoff — Shape Smuggler
 
-Branch: `smuggler`. Entry: `/lab.html#/smuggler` (`src/lab/smuggler.ts`).
+Branch: `smuggler`. Entry: `/smuggle/` (`src/lab/smuggler.ts`).
 
 ## The spatial concept
 
@@ -49,5 +49,5 @@ that.
 ## Run
 
 ```bash
-npm install && npm run dev   # http://localhost:5173/lab.html#/smuggler
+npm install && npm run dev   # http://localhost:5173/smuggle/
 ```

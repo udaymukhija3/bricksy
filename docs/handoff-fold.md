@@ -1,6 +1,6 @@
 # Handoff — Fold
 
-Branch: `fold`. Entry: `/lab.html#/fold` (`src/lab/fold.ts`, model in `src/lab/nets.ts`).
+Branch: `fold`. Entry: `/fold/` (`src/lab/fold.ts`, model in `src/lab/nets.ts`).
 
 ## The spatial concept
 
@@ -49,6 +49,6 @@ the folding has to be imagined. Move to those.
 ## Run
 
 ```bash
-npm install && npm run dev   # http://localhost:5173/lab.html#/fold
+npm install && npm run dev   # http://localhost:5173/fold/
 npm test                     # includes the 11-net folding checks
 ```

@@ -1,6 +1,6 @@
 # Handoff — Mirror Trap
 
-Branch: `mirror`. Entry: `/lab.html#/mirror` (`src/lab/mirror.ts`).
+Branch: `mirror`. Entry: `/mirror/` (`src/lab/mirror.ts`).
 
 ## The spatial concept
 
@@ -48,5 +48,5 @@ shapes with similar sub-parts defeat them.
 ## Run
 
 ```bash
-npm install && npm run dev   # http://localhost:5173/lab.html#/mirror
+npm install && npm run dev   # http://localhost:5173/mirror/
 ```

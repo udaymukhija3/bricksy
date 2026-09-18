@@ -1,6 +1,8 @@
 # Handoff — Projection Detective
 
-Branch: `projection`. Entry: `/lab.html#/projection` (`src/lab/projection.ts`).
+> **Shipped 2026-09-18 as Shadows** — `/shadows/`, on the hub, with the daily/endless run loop. Code: `src/lab/shadows.ts`. What shipped: one commit per round; a miss shows the disagreeing cells and the actual object as an orange ghost; difficulty by level: 5→8 cubes in 3³, then 7→10 in 4×3×4. The sections below are the original brief; the open questions still stand.
+
+Branch: `projection`. Entry: `/shadows/` (`src/lab/shadows.ts`).
 
 ## The spatial concept
 
@@ -57,5 +59,5 @@ Any redesign that violates either rule is a different (and weaker) game.
 ## Run
 
 ```bash
-npm install && npm run dev   # http://localhost:5173/lab.html#/projection
+npm install && npm run dev   # http://localhost:5173/shadows/
 ```

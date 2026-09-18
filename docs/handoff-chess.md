@@ -1,6 +1,8 @@
 # Handoff — Rotation Chess
 
-Branch: `chess`. Entry: concept page `/lab.html#/chess` (`src/lab/concepts.ts`). Nothing playable yet.
+> **Shipped 2026-09-18 as Mate** — `/mate/`, on the hub, with the daily/endless run loop. Code: `src/lab/mate.ts` + `mate-model.ts` (tested: attacks, mate, legality incl. physical validity, unique answers, answer kind by level). What shipped: attack = shadow minus anchor; states must be physically possible (no shared cells, king's cell clear at ground level); puzzles brute-forced to a unique mating move, forced to a turn, then a horizontal-axis turn, then three pieces; deterministic fallback so a seed never fails; current attacks shown, post-move shadow hidden. The sections below are the original brief; the open questions still stand.
+
+Branch: `chess`. Entry: `/mate/`.
 
 ## The spatial concept
 
@@ -41,5 +43,5 @@ trivial. Lowest priority of the four concepts; highest ceiling if it works.
 ## Run
 
 ```bash
-npm install && npm run dev   # http://localhost:5173/lab.html#/chess
+npm install && npm run dev   # http://localhost:5173/mate/
 ```
