@@ -21,6 +21,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   stage.scene.add(world);
   let crate!: ReturnType<typeof cubeGroup>;
   let player!: THREE.Mesh;
+  let box: THREE.Mesh | null = null;
 
   // ---- panel: status · plan queue · d-pad · actions
   const status = h('div.muted');
@@ -98,6 +99,20 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
       sock.add(fill, line);
     });
     world.add(sock);
+    // The box (push only) and its own teal socket.
+    box = null;
+    if (level.boxSocket) {
+      const bs = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.06, 0.92), new THREE.MeshBasicMaterial({ color: 0x2ec4b6, transparent: true, opacity: 0.5 }));
+      bs.position.set(level.boxSocket[0], -0.46, level.boxSocket[1]);
+      const bl = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(0.92, 0.06, 0.92)), new THREE.LineBasicMaterial({ color: 0x7fe5da, depthTest: false, transparent: true, opacity: 0.9 }));
+      bl.position.copy(bs.position);
+      bl.renderOrder = 5;
+      world.add(bs, bl);
+      box = new THREE.Mesh(new THREE.BoxGeometry(0.86, 0.86, 0.86), new THREE.MeshStandardMaterial({ color: 0x3f8f86, roughness: 0.7 }));
+      box.castShadow = box.receiveShadow = true;
+      box.add(new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(0.87, 0.87, 0.87)), new THREE.LineBasicMaterial({ color: 0x0b0d12, transparent: true, opacity: 0.6 })));
+      world.add(box);
+    }
     // Crate: cells relative to the pivot so the group can spin about it; the pivot cube is marked.
     const rel = crateCells(level.shape, { pivot: [0, 0], rot: 0 }).map((p) => [p[0], 0, p[1]] as Cell);
     crate = cubeGroup(rel, { marker: 0, color: 0xa8703a });
@@ -112,6 +127,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     crate.group.position.copy(at(state.crate.pivot));
     crate.group.rotation.y = -(state.crate.rot & 3) * Math.PI / 2;
     player.position.copy(at(state.player, -0.18));
+    if (box && state.box) box.position.copy(at(state.box, -0.07));
   }
 
   function newLevel() {
@@ -126,8 +142,10 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     P.message('');
     P.clearPost();
     goB.disabled = undoB.disabled = clearB.disabled = giveUpB.disabled = false;
-    hintEl.textContent = `Crate onto the green socket, orange pivot cube on the bright cell. You turn it from a cell next to it.`;
-    log.push('present', { sketch: 'shove', mode: run.mode, level: run.level, room: { w: level.w, h: level.h, walls: level.walls, shape: level.shape, start: level.start, socket: level.socket, par: level.par }, budget });
+    hintEl.textContent = level.boxSocket
+      ? `Crate onto the green socket, pivot on the bright cell — and the teal box onto its teal socket. The box only pushes.`
+      : `Crate onto the green socket, orange pivot cube on the bright cell. You turn it from a cell next to it.`;
+    log.push('present', { sketch: 'shove', mode: run.mode, level: run.level, room: { w: level.w, h: level.h, walls: level.walls, shape: level.shape, start: level.start, socket: level.socket, boxSocket: level.boxSocket, par: level.par }, budget });
   }
 
   /** Animate one already-validated transition. */
@@ -140,8 +158,10 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
       const p0 = at(from.player, -0.18), p1 = at(to.player, -0.18);
       const c0 = at(from.crate.pivot), c1 = at(to.crate.pivot);
       const pushed = key(from.crate.pivot) !== key(to.crate.pivot);
-      if (pushed) run.sfx.thud(); else run.sfx.click();
-      await stage.tween(STEP_MS, (t) => { const k = easeOut(t); player.position.lerpVectors(p0, p1, k); if (pushed) crate.group.position.lerpVectors(c0, c1, k); });
+      const boxed = !!(from.box && to.box && key(from.box) !== key(to.box));
+      const b0 = from.box ? at(from.box, -0.07) : null, b1 = to.box ? at(to.box, -0.07) : null;
+      if (pushed || boxed) run.sfx.thud(); else run.sfx.click();
+      await stage.tween(STEP_MS, (t) => { const k = easeOut(t); player.position.lerpVectors(p0, p1, k); if (pushed) crate.group.position.lerpVectors(c0, c1, k); if (boxed && box && b0 && b1) box.position.lerpVectors(b0, b1, k); });
     }
     syncScene();
   }

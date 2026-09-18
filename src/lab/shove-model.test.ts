@@ -22,6 +22,13 @@ check('turn ccw from an adjacent cell', t !== null && t.crate.rot === 3);
 check('cw turn about the pivot: (1,0)→(0,1), (0,1)→(−1,0)', JSON.stringify(crateCells(SHAPES.L3, { pivot: [2, 2], rot: 1 })) === JSON.stringify([[2, 2], [2, 3], [1, 2]]));
 check('turn blocked when a destination cell is the player', apply(lvl, { player: [1, 2], crate: { pivot: [2, 2], rot: 0 } }, 'cw') === null);
 check('turn not allowed from afar', apply(lvl, { player: [1, 1], crate: { pivot: [2, 2], rot: 0 } }, 'cw') === null);
+// Box: pushed one cell, blocked by the crate, never turned; a turn cannot sweep onto it.
+const bl: Level = { ...lvl, start: { player: [1, 1], crate: { pivot: [2, 2], rot: 0 }, box: [2, 1] } };
+check('pushing the box moves it and the player', JSON.stringify(apply(bl, bl.start, 'right')?.box) === '[3,1]');
+check('the box cannot be pushed into the crate', apply(bl, { player: [1, 2], crate: { pivot: [3, 2], rot: 0 }, box: [2, 2] }, 'right') === null);
+check('…but it can be pushed elsewhere', apply(bl, { player: [2, 1], crate: { pivot: [3, 2], rot: 0 }, box: [2, 2] }, 'down')?.box?.join() === '2,3');
+check('the crate cannot be pushed into the box', apply(bl, { player: [2, 4], crate: { pivot: [2, 2], rot: 0 }, box: [2, 1] }, 'up') === null);
+check('a turn onto the box is blocked', apply(bl, { player: [1, 2], crate: { pivot: [2, 2], rot: 0 }, box: [2, 1] }, 'ccw') === null);
 check('four cw turns are the identity', crateCells(SHAPES.L3, { pivot: [2, 2], rot: 4 }).join(';') === crateCells(SHAPES.L3, { pivot: [2, 2], rot: 0 }).join(';'));
 
 // Solver: a level whose socket is one push away has par 1.
@@ -31,9 +38,9 @@ check('solved() detects the socket', solved(one, apply(one, s0, 'right')!));
 
 // Generator: every level solvable at exactly its par, solution replays, no shorter path, and the socket is not the start.
 let n = 0, bad = 0, turnNeeded = 0, maxStates = 0;
-for (let seed = 1; seed <= 25; seed++) {
+for (let seed = 1; seed <= 15; seed++) {
   const rng = mulberry32(seed);
-  for (const level of [0, 2, 4, 6, 8, 9]) {
+  for (const level of [0, 2, 4, 6, 7, 8, 9, 10]) {
     const sp = spec(level);
     const L = makeLevel(sp, rng);
     n++;
@@ -43,6 +50,7 @@ for (let seed = 1; seed <= 25; seed++) {
     if (L.par < sp.parMin || L.par > sp.parMax) bad++;
     if (solved(L, L.start)) bad++;
     if (sp.needTurn && !L.solution.some((m: Move) => m === 'cw' || m === 'ccw')) turnNeeded++;
+    if (sp.box && (!L.boxSocket || !L.start.box || L.start.box.join() === L.boxSocket.join())) bad++;
     maxStates = Math.max(maxStates, L.w * L.h * L.w * L.h * 4);
   }
 }

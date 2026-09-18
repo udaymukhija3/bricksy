@@ -1,6 +1,6 @@
 # Handoff — Spatial Sokoban
 
-> **Shipped 2026-09-18 as Shove** — `/shove/`, on the hub, with the daily/endless run loop. Code: `src/lab/shove.ts` + `shove-model.ts` (tested: apply/turn rules, solver, generator par exactness, needTurn). What shipped: one crate (L3, later L4/T4), turns about its pivot from an adjacent cell, plans of 2–4 moves, no undo, budget par + 3, BFS-generated sockets at exact par; interior only is drawn with a fence at the border; two-crate rooms are the next dial. The sections below are the original brief; the open questions still stand.
+> **Shipped 2026-09-18 as Shove** — `/shove/`, on the hub, with the daily/endless run loop. Code: `src/lab/shove.ts` + `shove-model.ts` (tested: apply/turn rules, solver, generator par exactness, needTurn). What shipped: one crate (L3, later L4/T4), turns about its pivot from an adjacent cell, plans of 2–4 moves, no undo, budget par + 3, BFS-generated sockets at exact par; interior only is drawn with a fence at the border; from level 6 a push-only box with its own socket joins the room (the box must move too); a second turnable crate is the next dial. The sections below are the original brief; the open questions still stand.
 
 Branch: `sokoban`. Entry: `/shove/`.
 
