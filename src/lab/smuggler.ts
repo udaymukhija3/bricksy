@@ -62,6 +62,22 @@ function par(start: Cell[], walls: Wall[]) {
   return Infinity;
 }
 
+/** Fewest turns from this orientation through one wall: BFS over orientations. */
+export function fitFrom(cells: Cell[], wall: Wall): Move[] {
+  const start = normalize(cells);
+  const seen = new Map<string, Move[]>([[shapeKey(start), []]]);
+  const q: Cell[][] = [start];
+  for (let i = 0; i < q.length; i++) {
+    const c = q[i], path = seen.get(shapeKey(c))!;
+    if (passes(c, wall)) return path;
+    for (const m of MOVES) {
+      const n = normalize(c.map((x) => rotateCell(x, m)));
+      if (!seen.has(shapeKey(n))) { seen.set(shapeKey(n), [...path, m]); q.push(n); }
+    }
+  }
+  return [];
+}
+
 function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   const log = new Log();
   const stage = new SketchStage(stageEl, { gizmo: true });
@@ -193,13 +209,14 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
       if (!wallMissed) { wallMissed = true; game.miss(); }
       if (game.over) { game.showOver(newRun); return; }
       P.message(`Bonk. The silhouette doesn't fit the opening. It keeps this orientation — plan from here.`, 'bad');
+      // Never stuck: reality can show the fewest turns that pass from here (the miss stands).
+      P.post([{ label: 'Show a fit', onClick: () => { const seq = fitFrom(cells, wall); log.push('reveal', { sketch: 'smuggler', wall: wallIdx, moves: seq.map(moveLabel) }); Q.render(seq, 'solution', 'A FIT'); void commit(seq); } }]);
     }
     Q.reset();
     Q.enabled = true;
   }
 
-  game.onModeChange = newRun;
-  build();
+  game.begin(newRun);
   stage.onResize = () => look(Math.min(wallIdx, run.walls.length - 1));
   if (import.meta.env.DEV) Object.assign(window, { lab: { get run() { return run; }, get cells() { return cells; }, passes, MOVES, rotateCell, normalize } });
   const onKey = (e: KeyboardEvent) => { if (e.key === 'Enter' && !Q.enabled) (panelEl.querySelector('#post:not([hidden]) button.primary') as HTMLButtonElement | null)?.click(); };
