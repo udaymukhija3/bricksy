@@ -1,7 +1,7 @@
 // Flash: see a shape for a few seconds, then rebuild it from memory.
 import * as THREE from 'three';
 import { randomPolycube, extents, normalize, shapeKey, type Cell } from '../polycube.ts';
-import { SketchStage, cubeGroup, layerBuilder, panel, h, mulberry32, pulseMats, COLOR_OK, COLOR_BAD, cellKey, sleep } from './kit.ts';
+import { SketchStage, cubeGroup, layerBuilder, panel, h, mulberry32, pulseMats, COLOR_OK, COLOR_BAD, cellKey, sleep, untilHelpClosed, helpOpen } from './kit.ts';
 import type { SketchDef, MountCtx } from './types.ts';
 import { Log } from '../log.ts';
 import { Run } from '../run.ts';
@@ -37,6 +37,9 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   stage.scene.add(world);
   const overlay = h('div.overlay-text');
   stageEl.append(overlay);
+  let skipLook = false;
+  const gotIt = h('button.gotit', { hidden: true, onclick: () => { skipLook = true; } }, 'I’ve got it →');
+  stageEl.append(gotIt);
   const builderBox = h('div');
   panelEl.append(builderBox);
   const commitB = h('button.primary', { onclick: commit, title: 'Enter' }, 'Commit ↵') as HTMLButtonElement;
@@ -85,12 +88,20 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     world.add(cubeGroup(original).group);
     azimuth = 35;
     frame();
-    for (let ms = showMs; ms > 0; ms -= 100) {
+    await untilHelpClosed(stageEl);
+    if (gen !== my) return;
+    skipLook = false;
+    gotIt.hidden = false;
+    const t0 = performance.now();
+    for (let ms = showMs; ms > 0 && !skipLook; ms -= 100) {
       overlay.textContent = (ms / 1000).toFixed(1);
       await sleep(100);
       if (gen !== my) return;
+      while (helpOpen(stageEl)) { await sleep(100); if (gen !== my) return; } // the clock stops while help is open
     }
+    gotIt.hidden = true;
     overlay.textContent = '';
+    log.push('looked', { sketch: 'flash', ms: Math.round(performance.now() - t0), early: skipLook });
     showing = false;
     if (turnView) { azimuth = 125; frame(); }
     refresh();

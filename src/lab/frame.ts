@@ -4,6 +4,7 @@
 import { h } from './kit.ts';
 import { Log } from '../log.ts';
 import { progress } from '../progress.ts';
+import { dailyRecord, dayNumber, dateOfDay } from '../run.ts';
 import type { SketchDef } from './types.ts';
 
 const fmtMs = (ms: number | null) => (ms == null ? '—' : ms < 10000 ? `${(ms / 1000).toFixed(1)}s` : `${Math.round(ms / 1000)}s`);
@@ -15,6 +16,10 @@ export function helpCard(def: SketchDef, close: () => void) {
     h('h2', {}, `${def.icon ?? ''} ${def.title}`, h('span.sub', {}, ` ${def.skill}`)),
     h('h4', {}, 'How to play'), h('p', {}, def.tagline), def.controls ? h('p.muted', {}, def.controls) : null,
     def.about ? h('h4', {}, 'Why this game') : null, def.about ? h('p', {}, def.about) : null,
+    ...(() => {
+      const rows = Array.from({ length: Math.min(7, dayNumber()) }, (_, i) => dayNumber() - i).map((n) => ({ n, r: dailyRecord(def.id, dateOfDay(n)) })).filter((x) => x.r);
+      return rows.length ? [h('h4', {}, 'Recent dailies'), h('p.recent', {}, ...rows.flatMap((x) => [h('span', {}, `#${x.n} ${x.r!.results.filter(Boolean).length}/${x.r!.results.length} ${x.r!.results.map((b) => (b ? '🟩' : '🟥')).join('')}${x.r!.done ? '' : ' (in progress)'}`), h('br')]))] : [];
+    })(),
     h('h4', {}, 'Your learning curve'),
     p.n
       ? h('div', {}, h('p.muted', {}, `${p.hits}/${p.n} first-try over ${p.days} day${p.days === 1 ? '' : 's'}. Per difficulty level: hits, accuracy, median time to commit.`),

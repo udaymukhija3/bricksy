@@ -3,7 +3,7 @@
 // the map's up, so two frames of reference have to be aligned before memory is any use.
 import * as THREE from 'three';
 import type { Cell } from '../polycube.ts';
-import { SketchStage, voxelMesh, panel, h, mulberry32, sleep, easeInOut, easeOut } from './kit.ts';
+import { SketchStage, voxelMesh, panel, h, mulberry32, sleep, easeInOut, easeOut, untilHelpClosed, helpOpen } from './kit.ts';
 import type { SketchDef, MountCtx } from './types.ts';
 import { Log } from '../log.ts';
 import { Run } from '../run.ts';
@@ -26,6 +26,9 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   stageEl.append(overlay);
   const fade = h('div.fade', { hidden: true });
   stageEl.append(fade);
+  let skipLook = false;
+  const gotIt = h('button.gotit', { hidden: true, onclick: () => { skipLook = true; } }, 'I’ve got it →');
+  stageEl.append(gotIt);
   let startMarker!: THREE.Object3D, trail!: THREE.Group;
   let yaw = 0;
 
@@ -106,8 +109,15 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     renderStatus();
     hintEl.textContent = `${sp.showMs / 1000}s to memorise. Blue arrow: you and the way you face. Green: the goal.${sp.heading === 'random' ? ' The map is north-up; you are not.' : ''}${sp.tolerance ? ' One wrong turn is forgiven at this size.' : ''}`;
     log.push('present', { sketch: 'wayfind', mode: run.mode, level: run.level, maze: { rooms: m.rooms, loops: sp.loops, open: m.open, start: m.start, goal: m.goal, heading: m.heading, par: m.par }, showMs: sp.showMs, cut: sp.cut });
-    for (let ms = sp.showMs; ms > 0; ms -= 100) { overlay.textContent = (ms / 1000).toFixed(1); await sleep(100); if (gen !== my) return; }
+    await untilHelpClosed(stageEl);
+    if (gen !== my) return;
+    skipLook = false;
+    gotIt.hidden = false;
+    const t0 = performance.now();
+    for (let ms = sp.showMs; ms > 0 && !skipLook; ms -= 100) { overlay.textContent = (ms / 1000).toFixed(1); await sleep(100); if (gen !== my) return; while (helpOpen(stageEl)) { await sleep(100); if (gen !== my) return; } }
+    gotIt.hidden = true;
     overlay.textContent = '';
+    log.push('looked', { sketch: 'wayfind', ms: Math.round(performance.now() - t0), early: skipLook });
     startMarker.visible = false;
     if (sp.cut) {
       fade.hidden = false; fade.style.opacity = '1';

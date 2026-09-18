@@ -303,3 +303,5 @@ a.button.primary:hover { background: #ffb63a; }
 .week .day.on { background: #244a2c; border-color: var(--y); color: #9fe0ad; }
 .week .day.today { box-shadow: 0 0 0 2px var(--accent); }
 .week .day.void { opacity: 0.25; }
+.sk-stage .gotit { position: absolute; right: 12px; bottom: 12px; z-index: 3; }
+.overlay .card.help .recent { font-variant-numeric: tabular-nums; }

@@ -9,6 +9,12 @@ import {
 
 export * from '../render-common.ts';
 export const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+/** Resolves once no help card is open over `stageEl` — timed phases wait for it so a first visit's how-to-play doesn't eat the look. */
+export const helpOpen = (stageEl: HTMLElement) => !!stageEl.querySelector('.helpwrap:not([hidden])');
+export async function untilHelpClosed(stageEl: HTMLElement) {
+  await sleep(0); // the first-visit card opens right after mount; let it
+  while (helpOpen(stageEl)) await sleep(100);
+}
 export const cssColor = (n: number) => '#' + n.toString(16).padStart(6, '0');
 export const cellKey = (c: Cell) => c.join(',');
 
