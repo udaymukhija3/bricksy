@@ -33,7 +33,7 @@ const read = <T>(k: string, fallback: T): T => { try { const v = localStorage.ge
 const write = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* quota or private mode */ } };
 
 export interface DailyRecord { results: boolean[]; done: boolean }
-export interface Stats { played: number; dayStreak: number; bestDayStreak: number; lastDate: string; totalScore: number; totalRounds: number }
+export interface Stats { played: number; dayStreak: number; bestDayStreak: number; lastDate: string; totalScore: number; totalRounds: number; /** dailies finished with each score, index = score */ hist: number[] }
 
 /** Today's daily record for a game, as the hub reads it. Legacy "score/N" strings count as done. */
 export function dailyRecord(id: string, date = today()): DailyRecord | null {
@@ -45,7 +45,7 @@ export function dailyRecord(id: string, date = today()): DailyRecord | null {
   const score = Number(m[1]), n = Number(m[2]);
   return { results: Array.from({ length: n }, (_, i) => i < score), done: true };
 }
-export const statsOf = (id: string): Stats => read(`bricksy.${id}.stats`, { played: 0, dayStreak: 0, bestDayStreak: 0, lastDate: '', totalScore: 0, totalRounds: 0 });
+export const statsOf = (id: string): Stats => ({ played: 0, dayStreak: 0, bestDayStreak: 0, lastDate: '', totalScore: 0, totalRounds: 0, hist: [], ...read<Partial<Stats>>(`bricksy.${id}.stats`, {}) });
 
 export class Run {
   mode: Mode;
@@ -176,6 +176,7 @@ export class Run {
     st.played++;
     st.totalScore += this.score;
     st.totalRounds += this.dailyRounds;
+    st.hist = Array.from({ length: this.dailyRounds + 1 }, (_, i) => (st.hist[i] ?? 0) + (i === this.score ? 1 : 0));
     write(`bricksy.${this.opts.id}.stats`, st);
   }
 
@@ -244,6 +245,9 @@ export class Run {
       ? `${this.opts.name} #${dayNumber()} · same ${this.dailyRounds} puzzles for everyone. Day streak ${st.dayStreak}${st.bestDayStreak > st.dayStreak ? ` (best ${st.bestDayStreak})` : ''} · ${st.played} played${st.totalRounds ? ` · avg ${(this.dailyRounds * st.totalScore / st.totalRounds).toFixed(1)}/${this.dailyRounds}` : ''}.`
       : `Best ${this.best} · best streak ${this.bestStreak}`;
     const next = h('p.muted.next');
+    // Score distribution over every daily played, today's bar highlighted — the Wordle habit.
+    const hist = daily && st.played > 1 ? h('div.hist', {}, ...st.hist.map((n, i) => h('div.bar' + (i === this.score ? '.me' : ''), { title: `${n} day${n === 1 ? '' : 's'} at ${i}/${this.dailyRounds}` },
+      h('span.k', {}, String(i)), h('span.v', { style: { width: `${Math.max(4, (100 * n) / Math.max(...st.hist, 1))}%` } }, n ? String(n) : '')))) : null;
     const tick = () => { const ms = msToMidnight(); const s = Math.floor(ms / 1000); next.textContent = `Next daily in ${String(Math.floor(s / 3600)).padStart(2, '0')}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; };
     const again2 = () => { this.hideOver(); if (daily) this.setMode('endless'); else { this.reset(); again(); } };
     const more = h('a.button', { href: import.meta.env.BASE_URL }, 'More games');
@@ -251,6 +255,7 @@ export class Run {
       h('h2', {}, title),
       h('p.results', {}, this.results.map((r) => (r ? '🟩' : '🟥')).join('')),
       h('p.muted', {}, sub),
+      hist,
       daily ? next : null,
       h('div.row', {},
         h('button.primary', { onclick: () => this.share() }, 'Share'),

@@ -250,19 +250,31 @@ export function pulseMats(ticker: Ticker, mats: THREE.MeshStandardMaterial[], co
 
 // ---------------------------------------------------------------- ui widgets
 
-/** Message line + a row of post-commit buttons. */
-export function panel(container: HTMLElement) {
+/**
+ * Message line + a row of post-commit buttons. The message and the primary button are mirrored
+ * into a banner on the stage (the element before the panel in the frame), so the verdict and
+ * "Next" are where the eyes are — on a phone the panel's bottom is below the fold.
+ */
+export function panel(container: HTMLElement, stageEl: HTMLElement | null = container.previousElementSibling as HTMLElement | null) {
   const message = h('div#message');
   const post = h('div#post');
   container.append(message, post);
+  const bannerText = h('span.t');
+  const bannerBtn = h('span.b');
+  const banner = h('div.stage-msg', { hidden: true }, bannerText, bannerBtn);
+  stageEl?.append(banner);
+  const syncBanner = () => { banner.hidden = !message.textContent && !bannerBtn.childElementCount; };
   return {
-    message(text: string, tone: '' | 'ok' | 'bad' = '') { message.textContent = text; message.className = tone; },
+    message(text: string, tone: '' | 'ok' | 'bad' = '') { message.textContent = text; message.className = tone; bannerText.textContent = text; banner.className = 'stage-msg ' + tone; syncBanner(); },
     post(buttons: { label: string; primary?: boolean; onClick: () => void; key?: string }[]) {
       post.replaceChildren(...buttons.map((b) => h('button' + (b.primary ? '.primary' : ''), { onclick: b.onClick, title: b.key }, b.label)));
       post.hidden = !buttons.length;
+      const primary = buttons.find((b) => b.primary);
+      bannerBtn.replaceChildren(...(primary ? [h('button.primary', { onclick: primary.onClick, title: primary.key }, primary.label)] : []));
+      syncBanner();
       return buttons;
     },
-    clearPost() { post.replaceChildren(); post.hidden = true; },
+    clearPost() { post.replaceChildren(); post.hidden = true; bannerBtn.replaceChildren(); syncBanner(); },
   };
 }
 

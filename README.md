@@ -60,19 +60,30 @@ corners); `stages.ts` renders; `jobs.ts` is the episode; `main.ts` is the map.
 
 ## Product layer (`src/run.ts`)
 
-Every game shares one run loop: a daily of N rounds seeded from the date and
-the game id (so the puzzles are identical for everyone that day), an endless
-mode with three lives, best score and best streak in `localStorage`, a
-result card with a Wordle-style 🟩🟥 grid, and Share (Web Share API, falling
-back to the clipboard). Difficulty is a function of the round index in a
-daily and of the score in endless.
+Every game shares one run loop:
+
+- **Daily**: N rounds seeded from the date, the game id and the round index,
+  so the puzzles are identical for everyone that day. Progress is saved after
+  every round and restored on reload; a finished daily locks — on return you
+  get the result card, not the puzzles. Daily #1 was 2026-09-18.
+- **Endless**: three lives, score, best score and best streak.
+- **Result card**: Wordle-style 🟩🟥 grid, day streak, dailies played,
+  average, your score distribution over every daily, a countdown to the
+  next one, Share (Web Share API, clipboard fallback), Practice (endless),
+  and *Next daily: …* — the first game you haven't played today.
+- **Hub** (`/`): every card shows today's result or that a daily is in
+  progress; the header counts how many of the day's dailies you've played.
+- Difficulty is a function of the round index in a daily and of the score
+  in endless. The verdict and the primary action are mirrored into a banner
+  on the stage, so on a phone you never have to scroll to find "Next".
 
 ## Pack (`/pack/`)
 
 A piece hovers over a mold with a hole in it. Queue quarter-turns about the
 world axes, then **Drop it**. The piece turns, falls, and either seats flush or
-collides and sits proud. Three lives, a score, a best score, and stages that
-escalate with score:
+collides and sits proud. A daily of eight pieces (the stage curve below
+climbs twice as fast, so round 7 is three turns) or endless with three lives;
+stages escalate with score:
 
 | Stage (score) | Turns | Cubes | Marker | Mold | Camera | Holes |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -95,8 +106,9 @@ this without mental rotation?"*:
 - **Glass first, opaque later.** A glass mold shows the hole as a visible
   negative shape, so early stages isolate rotation. The opaque mold makes
   reading depth from shadows part of the task — a later dial, not the first.
-- **Misses cost a life but keep the piece.** You can lift it out and try again
-  with the evidence of where it landed. Skipping is allowed; it already cost a life.
+- **Only the first drop decides a piece.** A miss keeps the piece: you can
+  lift it out and try again with the evidence of where it landed, but the
+  round already counted — the retry is for learning, not for score.
 - **Fits auto-advance** after ~1s to keep rhythm; misses stop and wait.
 
 ## The other games

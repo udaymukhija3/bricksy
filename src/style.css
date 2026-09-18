@@ -253,3 +253,18 @@ a.button:hover { background: #2f3441; }
 .hub .today.partial { color: var(--muted); }
 .hub .today .grid { display: inline; letter-spacing: 1px; font-size: 10px; }
 .hub .card-top { flex-wrap: wrap; }
+
+/* ---- stage banner: the verdict and the primary action, on the stage ---- */
+.sk-stage .stage-msg { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); max-width: calc(100% - 24px); display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 10px; background: rgba(20, 22, 28, 0.86); border: 1px solid var(--line); backdrop-filter: blur(3px); font-weight: 600; font-size: 13px; z-index: 3; pointer-events: none; }
+.sk-stage .stage-msg .t { pointer-events: none; }
+.sk-stage .stage-msg .b { pointer-events: auto; display: contents; }
+.sk-stage .stage-msg .b:empty { display: none; }
+.sk-stage .stage-msg.ok .t { color: var(--y); }
+.sk-stage .stage-msg.bad .t { color: var(--x); }
+.sk-stage .stage-msg button { padding: 5px 10px; font-size: 13px; min-height: 0; }
+@media (max-width: 640px) { .sk-stage .stage-msg { bottom: 6px; font-size: 12.5px; padding: 6px 10px; } }
+.overlay .hist { display: grid; gap: 3px; margin: 4px auto 10px; max-width: 260px; text-align: left; }
+.overlay .hist .bar { display: grid; grid-template-columns: 2ch 1fr; align-items: center; gap: 6px; font-size: 12px; }
+.overlay .hist .k { color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+.overlay .hist .v { height: 16px; background: var(--raised); border-radius: 3px; color: var(--text); font-size: 11px; line-height: 16px; padding-left: 6px; box-sizing: border-box; }
+.overlay .hist .bar.me .v { background: var(--y); color: #06200c; font-weight: 700; }
