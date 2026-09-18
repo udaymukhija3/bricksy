@@ -9,6 +9,7 @@ import { smuggler } from './lab/smuggler';
 import { shadows } from './lab/shadows';
 import { count } from './lab/count';
 import { flash } from './lab/flash';
+import { shove } from './lab/shove';
 
 export const PACK: SketchDef = { id: 'pack', title: 'Pack', icon: '📦', status: 'flagship', skill: 'mental rotation', tagline: 'Turn the piece so it drops into the hole. Lives, score, stages.', href: 'pack/' };
-export const GAMES: SketchDef[] = [slice, fold, gravity, mirror, gears, smuggler, shadows, count, flash];
+export const GAMES: SketchDef[] = [slice, fold, gravity, mirror, gears, smuggler, shadows, count, flash, shove];
