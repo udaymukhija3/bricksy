@@ -46,6 +46,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   let dims: Dims = { w: 3, h: 3, d: 3 }, n = 5;
   let hidden: Cell[] = [];
   let target = project([], dims);
+  let practice = false; // after a miss: keep fixing until it casts right; the round already counted
   const world = new THREE.Group();
   stage.scene.add(world);
   let build: ReturnType<typeof cubeGroup> | null = null;
@@ -98,6 +99,8 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     LB = layerBuilder(builderBox, dims, { onChange: refresh, max: n });
     grids(views, target);
     resultBox.hidden = true;
+    practice = false;
+    commitB.textContent = 'Commit ↵';
     refresh();
     frame();
     commitB.disabled = clearB.disabled = false;
@@ -120,12 +123,19 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
       bad += diff[v].size;
     }
     const ok = bad === 0;
-    log.push('result', { sketch: 'shadows', ok, cells, badCells: bad });
+    log.push(practice ? 'practice' : 'result', { sketch: 'shadows', ok, cells, badCells: bad });
     grids(resultViews, mine, diff);
     resultBox.hidden = false;
     if (build) void pulseMats(stage.ticker, [build.mats.base, build.mats.marker], ok ? COLOR_OK : COLOR_BAD);
     const same = cells.length === hidden.length && cells.every((c) => hidden.some((d) => cellKey(c) === cellKey(d)));
-    if (!same) {
+    if (practice) {
+      // Practice after a miss: the diff is the teacher; the round's result already stands.
+      if (!ok) { P.message(`Still ${bad} cell${bad > 1 ? 's' : ''} off — outlined red missing, solid red extra.`, 'bad'); commitB.disabled = clearB.disabled = false; LB.enabled = true; return; }
+      P.message(same ? 'Fixed — exactly the hidden object.' : 'Fixed — it casts all three silhouettes now.', 'ok');
+      P.post([{ label: 'Next ↵', primary: true, onClick: newCase }]);
+      return;
+    }
+    if (!same && ok) {
       // Show the object that actually cast the silhouettes, as an orange ghost.
       await sleep(400);
       world.add(cubeGroup(hidden, { ghost: true, color: 0xf5a524 }).group);
@@ -133,9 +143,13 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     ok ? run.hit() : run.miss();
     P.message(ok
       ? (same ? 'Exactly the hidden object.' : 'Your build casts all three silhouettes — a valid answer. The actual object is the orange ghost; the views could not tell them apart.')
-      : `${bad} cell${bad > 1 ? 's' : ''} disagree across the views — outlined red are missing, solid red are extra. The hidden object is the orange ghost.`, ok ? 'ok' : 'bad');
+      : `${bad} cell${bad > 1 ? 's' : ''} disagree across the views — outlined red are missing, solid red are extra.`, ok ? 'ok' : 'bad');
     if (run.over) run.showOver(newCase);
-    else P.post([{ label: 'Next ↵', primary: true, onClick: newCase }]);
+    else P.post([
+      { label: 'Next ↵', primary: true, onClick: newCase },
+      ...(ok ? [] : [{ label: 'Fix it (practice)', onClick: () => { practice = true; commitB.textContent = 'Check ↵'; commitB.disabled = clearB.disabled = false; LB.enabled = true; P.clearPost(); P.message('Fix the build until it casts all three views. The miss stands.'); } },
+        { label: 'Show the object', onClick: () => { world.add(cubeGroup(hidden, { ghost: true, color: 0xf5a524 }).group); P.post([{ label: 'Next ↵', primary: true, onClick: newCase }]); } }]),
+    ]);
   }
 
   run.begin(newCase);

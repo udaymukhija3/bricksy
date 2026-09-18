@@ -15,9 +15,9 @@ with controls, *why this game* and the player's learning curve · phone layout �
 | 🧩 Assemble | ✓ | 2→4 parts, scramble 1→3 | *Show solution* fly-in | full round hit, pick cycling, grid anchor on a phone | anchors can be set by tapping a layer grid or the ghost |
 | 🔪 Cut | ✓ (case picker pure since today) | solids/cuts to L6, six options at L8 | cuts the solid, marks the outline | L14 loads | plateau after L8 |
 | 📐 Fold | ✓ | 1-4-1 nets → all 11; two faces at L6 | folds, tumbles, marks faces | two-face round played | nothing beyond two faces |
-| 🔦 Shadows | ✓ | 5→13 cubes, 3³ → 4³ | diff grids + orange ghost | L13 loads | one commit per round; a "fix it" practice mode would teach more |
+| 🔦 Shadows | ✓ | 5→13 cubes, 3³ → 4³ | diff grids; *Fix it (practice)* until it casts right; *Show the object* | miss → fix → fixed | — |
 | 🔢 Count | ✓ | 3×3 → 6×6, heights 3→4 | 540° reveal, hidden in orange | L9 loads | plateau after L14 |
-| ⚡ Flash | ✓ | 4→8 cubes, 3 → 1.2 s, turned view | ghost overlay | L0 played | no "what did I get wrong" beyond counts |
+| ⚡ Flash | ✓ | 4→8 cubes, 3 → 1.2 s, turned view | ghost overlay; your extra cubes turn red | L0 played | — |
 | 🎲 Tilt | ✓ | 4→5 rooms, 3→5 loose | cubes fall, socket pulses | L0 played | plateau after L12; only one asked cube |
 | ⚙️ Gears | ✓ | 4→7 gears, speed at L3, compounds at L5/L8 | train runs, marks | L14 loads | plateau after L8 |
 | 🏗️ Shove | ✓ | par 3→18, turn needed at L4, box at L6, L4/T4 crates at L8 | *Show solution* | solved at par, blocked plan, box replay | second turnable crate; box levels take up to ~0.4 s to generate |

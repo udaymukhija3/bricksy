@@ -115,9 +115,14 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     const ghost = cubeGroup(original, { ghost: true, color: 0xf5a524 });
     ghost.group.position.set(bMin[0] - oMin[0], bMin[1] - oMin[1], bMin[2] - oMin[2]);
     world.add(ghost.group);
-    if (build) void pulseMats(stage.ticker, [build.mats.base], same ? COLOR_OK : COLOR_BAD);
+    // Your cubes that are not in the original (after aligning bounding boxes) turn red; the rest stay.
+    if (build) {
+      const orig = new Set(original.map((c) => cellKey([c[0] - oMin[0] + bMin[0], c[1] - oMin[1] + bMin[1], c[2] - oMin[2] + bMin[2]])));
+      for (const cube of build.cubes) if (!orig.has(cellKey(cube.userData.cell as Cell))) cube.material = new THREE.MeshStandardMaterial({ color: COLOR_BAD, roughness: 0.6 });
+      void pulseMats(stage.ticker, [build.mats.base], same ? COLOR_OK : COLOR_BAD);
+    }
     same ? run.hit() : run.miss();
-    P.message(same ? 'Exact.' : `${missing} missing, ${extra} extra. The original is the orange ghost.`, same ? 'ok' : 'bad');
+    P.message(same ? 'Exact.' : `${missing} missing, ${extra} extra (red). The original is the orange ghost.`, same ? 'ok' : 'bad');
     if (run.over) run.showOver(() => void newCase());
     else P.post([{ label: 'Next ↵', primary: true, onClick: () => void newCase() }]);
   }
