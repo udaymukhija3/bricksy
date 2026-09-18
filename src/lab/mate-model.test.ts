@@ -48,6 +48,21 @@ for (let seed = 1; seed <= 25; seed++) {
 check(`${n} puzzles: not mate yet, exactly one mating move, it is the recorded answer (${bad} bad)`, bad === 0);
 check(`every piece is a connected polycube with its pivot at the origin (${split} broken)`, split === 0);
 check(`answer kind follows the spec: turn / horizontal-axis turn (${kind} wrong)`, kind === 0);
+// Guard: its shadow forbids landing squares; slides onto it are illegal; puzzles have the guard matter.
+{
+  const g: State = { n: 5, king: [4, 4], pieces: [{ cells: SHAPES.I3, anchor: [0, 0] }], guards: [{ cells: [[0, 0, 0], [-1, 0, 0]], anchor: [2, 0] }] };
+  check('a slide onto a guard-shadowed square is illegal', apply(g, 0, { type: 'slide', dir: 'x+' }) === null);
+  check('the same slide is legal without the guard', apply({ ...g, guards: undefined }, 0, { type: 'slide', dir: 'x+' }) !== null);
+  let n = 0, bad = 0;
+  for (let seed = 1; seed <= 8; seed++) {
+    const p = makePuzzle(spec(10), mulberry32(seed * 53));
+    if (!p.guards?.length) continue;
+    n++;
+    if (matingMoves(p).length !== 1 || matingMoves({ ...p, guards: undefined }).length < 2) bad++;
+  }
+  check(`${n} guard puzzles: unique mate with the guard, more without it (${bad} bad)`, bad === 0 && n > 0);
+}
+
 // Mate in two: no mate in one, one forcing first move, and every king reply has a recorded mating follow-up that mates.
 let two = 0, twoBad = 0, fell = 0;
 for (let seed = 1; seed <= 12; seed++) {

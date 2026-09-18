@@ -22,7 +22,7 @@ with controls, *why this game* and the player's learning curve · phone layout �
 | ⚙️ Gears | ✓ | 4→7 gears, speed at L3, compounds at L5/L8 | train runs, marks | L14 loads | plateau after L8 |
 | 🏗️ Shove | ✓ | par 3→18, turn needed at L4, box at L6, L4/T4 crates at L8, two crates at L12 | *Show solution* | solved at par, blocked plan, box replay, two-crate replay | heavy levels take up to ~0.4 s to generate |
 | 🧭 Wayfind | ✓ | 4×4 → 9×9, loops 0→5, random heading at L3 | trail on the map | walk, dead end, give up | no "rotated map" variant; hit = zero wrong turns may be harsh at 9×9 |
-| ♟️ Mate | ✓ | any → turn → tilt → 3 pieces → mate in two at L8 | escape squares, *Show answer* (both plies) | mate-in-one hit, mate-in-two miss + replay | no opponent beyond the king; mate in two only in endless |
+| ♟️ Mate | ✓ | any → turn → tilt → 3 pieces → mate in two at L8 → a guard at L10 | escape squares, *Show answer* (both plies) | mate-in-one hit, mate-in-two miss + replay, guard round | guard is static; mate in two only in endless |
 | 🔁 Match | prototype 0, deliberately bare (control condition) | 5 levels, own progression | replay / reveal | — | not a product by design |
 
 Cross-cutting, shipped today: run loop with reload-safe dailies, lock + result card (streaks,

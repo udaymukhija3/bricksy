@@ -7,7 +7,7 @@ import { SketchStage, cubeGroup, voxelMesh, panel, h, mulberry32, sleep, easeInO
 import type { SketchDef, MountCtx } from './types.ts';
 import { Log } from '../log.ts';
 import { Run } from '../run.ts';
-import { makePuzzle, apply, isMate, allAttacks, kingSquares, kingReplies, applyKing, matingMoves, spec, key, ACTIONS, actionLabel, type Puzzle, type State, type Action, type P } from './mate-model.ts';
+import { makePuzzle, apply, isMate, allAttacks, guardAttacks, kingSquares, kingReplies, applyKing, matingMoves, spec, key, ACTIONS, actionLabel, type Puzzle, type State, type Action, type P } from './mate-model.ts';
 
 const same = (a: Action, b: Action) => JSON.stringify(a) === JSON.stringify(b);
 
@@ -19,6 +19,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   const world = new THREE.Group();
   stage.scene.add(world);
   let groups: ReturnType<typeof cubeGroup>[] = [];
+  let guardGroups: ReturnType<typeof cubeGroup>[] = [];
   let king!: THREE.Group;
   const tiles = new THREE.Group();
   const marks = new THREE.Group();
@@ -101,6 +102,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     king.add(body, crown);
     world.add(king);
     groups = state.pieces.map((pc) => { const g = cubeGroup(pc.cells, { marker: 0 }); world.add(g.group); return g; });
+    guardGroups = (state.guards ?? []).map((pc) => { const g = cubeGroup(pc.cells, { color: 0xa33a40 }); world.add(g.group); return g; });
     syncScene();
     frame();
   }
@@ -108,13 +110,16 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   function syncScene() {
     king.position.set(state.king[0], 0, state.king[1]);
     state.pieces.forEach((pc, i) => { groups[i].group.position.set(pc.anchor[0], ground(pc.cells), pc.anchor[1]); });
+    (state.guards ?? []).forEach((pc, i) => { guardGroups[i].group.position.set(pc.anchor[0], ground(pc.cells), pc.anchor[1]); });
     tiles.clear();
     for (const k of allAttacks(state)) { const [x, z] = k.split(',').map(Number); tiles.add(plate([x, z], 0x3e8ff5)); }
+    // The guard's shadow: squares your pieces may not land on.
+    for (const k of guardAttacks(state)) { const [x, z] = k.split(',').map(Number); tiles.add(plate([x, z], 0xe5484d, -0.45, 0.7, 0.4)); }
   }
 
   function newPuzzle() {
     puzzle = makePuzzle(spec(run.level), mulberry32(run.nextSeed()));
-    state = { n: puzzle.n, king: puzzle.king, pieces: puzzle.pieces };
+    state = { n: puzzle.n, king: puzzle.king, pieces: puzzle.pieces, ...(puzzle.guards ? { guards: puzzle.guards } : {}) };
     done = false; busy = false; action = null; ply = 1;
     marks.clear();
     build();
@@ -125,8 +130,10 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     P.clearPost();
     hintEl.textContent = puzzle.depth === 2
       ? `Mate in two: your move, the king steps to its safest square, your move. No single move mates now.`
-      : `Blue tiles are attacked now. One move covers the king's cell and every neighbour.`;
-    log.push('present', { sketch: 'mate', mode: run.mode, level: run.level, n: puzzle.n, king: puzzle.king, pieces: puzzle.pieces, depth: puzzle.depth });
+      : puzzle.guards
+        ? `A red guard: its shadow (red tiles) is where your pieces may not land. One move still mates.`
+        : `Blue tiles are attacked now. One move covers the king's cell and every neighbour.`;
+    log.push('present', { sketch: 'mate', mode: run.mode, level: run.level, n: puzzle.n, king: puzzle.king, pieces: puzzle.pieces, guards: puzzle.guards, depth: puzzle.depth });
   }
 
   function onClick(ev: MouseEvent) {
@@ -232,7 +239,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     busy = true;
     P.clearPost();
     marks.clear();
-    state = { n: puzzle.n, king: puzzle.king, pieces: puzzle.pieces };
+    state = { n: puzzle.n, king: puzzle.king, pieces: puzzle.pieces, ...(puzzle.guards ? { guards: puzzle.guards } : {}) };
     build();
     highlightPiece(puzzle.answer.piece);
     await sleep(400);

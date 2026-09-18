@@ -36,7 +36,7 @@ const gens: Record<string, (level: number, rng: () => number) => unknown> = {
   shove: (l, r) => makeLevel(shoveSpec(l), r),
   wayfind: (l, r) => { const s = wayfindSpec(l); return generate(s.rooms, s.loops, r, s.heading); },
   assemble: (l, r) => assemblePuzzle(assembleSpec(l), r),
-  mate: (l, r) => matePuzzle(mateSpec(Math.min(l, 9)), r),
+  mate: (l, r) => matePuzzle(mateSpec(l), r),
 };
 
 for (const [name, gen] of Object.entries(gens)) {

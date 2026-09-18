@@ -25,7 +25,8 @@ export const SHAPES: Record<string, Cell[]> = {
 };
 
 export interface Piece { cells: Cell[]; anchor: P }
-export interface State { n: number; king: P; pieces: Piece[] }
+/** `guards`: enemy pieces. Their shadow marks squares your pieces may not land on; they never move. */
+export interface State { n: number; king: P; pieces: Piece[]; guards?: Piece[] }
 export interface Answer { piece: number; action: Action }
 export interface Puzzle extends State {
   answer: Answer;
@@ -50,6 +51,12 @@ export function allAttacks(s: State): Set<string> {
   for (const pc of s.pieces) for (const k of attacks(s.n, pc)) out.add(k);
   return out;
 }
+/** Squares under the guards' shadows: forbidden landing squares for your pieces. */
+export function guardAttacks(s: State): Set<string> {
+  const out = new Set<string>();
+  for (const g of s.guards ?? []) for (const k of attacks(s.n, g)) out.add(k);
+  return out;
+}
 
 /** Where a piece's cubes physically sit: grounded so its lowest cube rests on the board. */
 export function worldCells(pc: Piece): Cell[] {
@@ -59,7 +66,7 @@ export function worldCells(pc: Piece): Cell[] {
 /** Physically possible: no two cubes in one cell, and nothing on the king's own cell at ground level. */
 export function valid(s: State): boolean {
   const seen = new Set<string>();
-  for (const pc of s.pieces) for (const c of worldCells(pc)) {
+  for (const pc of [...s.pieces, ...(s.guards ?? [])]) for (const c of worldCells(pc)) {
     const k = c.join(',');
     if (seen.has(k)) return false;
     seen.add(k);
@@ -70,7 +77,7 @@ export function valid(s: State): boolean {
 
 const NEIGH: readonly P[] = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
 /** Squares the king could step to: on the board and not under a piece. */
-export const kingSquares = (s: State): P[] => NEIGH.map((d) => [s.king[0] + d[0], s.king[1] + d[1]] as P).filter((p) => onBoard(s.n, p) && !s.pieces.some((pc) => key(pc.anchor) === key(p)));
+export const kingSquares = (s: State): P[] => NEIGH.map((d) => [s.king[0] + d[0], s.king[1] + d[1]] as P).filter((p) => onBoard(s.n, p) && ![...s.pieces, ...(s.guards ?? [])].some((pc) => key(pc.anchor) === key(p)));
 export const inCheck = (s: State) => allAttacks(s).has(key(s.king));
 export function isMate(s: State) {
   const att = allAttacks(s);
@@ -85,7 +92,9 @@ export function apply(s: State, i: number, a: Action): State | null {
   else {
     const d = SLIDES[a.dir];
     const anchor: P = [pc.anchor[0] + d[0], pc.anchor[1] + d[1]];
-    if (!onBoard(s.n, anchor) || key(anchor) === key(s.king) || s.pieces.some((o, j) => j !== i && key(o.anchor) === key(anchor))) return null;
+    if (!onBoard(s.n, anchor) || key(anchor) === key(s.king) || [...s.pieces.filter((_, j) => j !== i), ...(s.guards ?? [])].some((o) => key(o.anchor) === key(anchor))) return null;
+    // A slide may not end under a guard's shadow.
+    if (guardAttacks(s).has(key(anchor))) return null;
     next = { cells: pc.cells, anchor };
   }
   const out = { ...s, pieces: s.pieces.map((o, j) => (j === i ? next : o)) };
@@ -126,22 +135,24 @@ export function forcingMoves(s: State, limit = 2): { first: Answer; followUps: R
   return out;
 }
 
-export interface Spec { n: number; pieces: number; answer: 'any' | 'turn' | 'tilt'; shapes: string[]; depth: 1 | 2 }
-/** Difficulty by level: the answer must be a turn, then a turn about a horizontal axis (the shadow changes shape), then three pieces, then mate in two (endless only). */
+export interface Spec { n: number; pieces: number; answer: 'any' | 'turn' | 'tilt'; shapes: string[]; depth: 1 | 2; guards?: number }
+/** Difficulty by level: the answer must be a turn, then a turn about a horizontal axis (the shadow changes shape), then three pieces, then mate in two, then a guard whose shadow forbids squares (endless only). */
 export function spec(level: number): Spec {
   if (level < 2) return { n: 5, pieces: 2, answer: 'any', shapes: ['L3', 'I3', 'T4', 'L4'], depth: 1 };
   if (level < 4) return { n: 5, pieces: 2, answer: 'turn', shapes: ['L3', 'T4', 'L4', 'S4'], depth: 1 };
   if (level < 6) return { n: 6, pieces: 2, answer: 'tilt', shapes: ['L3', 'T4', 'L4', 'S4', 'Y4'], depth: 1 };
   if (level < 8) return { n: 6, pieces: 3, answer: 'tilt', shapes: ['L3', 'T4', 'L4', 'S4', 'Y4'], depth: 1 };
-  return { n: 6, pieces: 3, answer: 'turn', shapes: ['L3', 'T4', 'L4', 'S4', 'Y4'], depth: 2 };
+  if (level < 10) return { n: 6, pieces: 3, answer: 'turn', shapes: ['L3', 'T4', 'L4', 'S4', 'Y4'], depth: 2 };
+  return { n: 6, pieces: 3, answer: 'any', shapes: ['L3', 'T4', 'L4', 'S4', 'Y4'], depth: 1, guards: 1 };
 }
 
 const fits = (sp: Spec, a: Action) => sp.answer === 'any' || (a.type === 'turn' && (sp.answer === 'turn' || a.move.axis !== 'y'));
 
 /** Deterministic for a seed; if the strict answer kind cannot be found, relax it rather than fail a daily. */
 export function makePuzzle(sp: Spec, rng: () => number): Puzzle {
-  const p = search(sp, rng, sp.depth === 2 ? 3000 : 12000);
+  const p = search(sp, rng, sp.depth === 2 ? 3000 : sp.guards ? 120000 : 12000);
   if (p) return p;
+  if (sp.guards) return makePuzzle({ ...sp, guards: 0, answer: 'tilt' }, rng);
   if (sp.depth === 2) return makePuzzle({ ...sp, depth: 1, answer: 'tilt' }, rng);
   if (sp.answer === 'tilt') return makePuzzle({ ...sp, answer: 'turn' }, rng);
   if (sp.answer === 'turn') return makePuzzle({ ...sp, answer: 'any' }, rng);
@@ -166,8 +177,21 @@ function search(sp: Spec, rng: () => number, tries: number): Puzzle | null {
       for (let t = rnd(4); t > 0; t--) { const m = MOVES[rnd(MOVES.length)]; cells = cells.map((c) => rotateCell(c, m)); }
       pieces.push({ cells, anchor });
     }
-    const s: State = { n, king, pieces };
+    const guards: Piece[] = [];
+    while (guards.length < (sp.guards ?? 0)) {
+      const anchor: P = [king[0] + rnd(5) - 2, king[1] + rnd(5) - 2];
+      if (!onBoard(n, anchor) || taken.has(key(anchor))) continue;
+      taken.add(key(anchor));
+      let cells = SHAPES[sp.shapes[rnd(sp.shapes.length)]];
+      for (let t = rnd(4); t > 0; t--) { const m = MOVES[rnd(MOVES.length)]; cells = cells.map((c) => rotateCell(c, m)); }
+      guards.push({ cells, anchor });
+    }
+    const s: State = { n, king, pieces, ...(guards.length ? { guards } : {}) };
     if (!valid(s) || isMate(s)) continue;
+    // Cheap prefilter: a guard whose shadow misses the king's neighbourhood cannot matter.
+    if (guards.length) { const ga = guardAttacks(s); if (![...kingSquares(s), king].some((p) => ga.has(key(p)))) continue; }
+    // The guard must matter: without it there would be more than one mating move (checked first — it is the cheaper reject).
+    if (guards.length && matingMoves({ ...s, guards: undefined }).length < 2) continue;
     const mates = matingMoves(s);
     if (sp.depth === 2) {
       // No mate in one (else the answer is ambiguous) and exactly one forcing first move.
