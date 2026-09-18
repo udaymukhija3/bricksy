@@ -1,16 +1,17 @@
-// Projection Detective: three silhouettes of a hidden object; build what casts them.
+// Shadows: three silhouettes of a hidden object; build what casts them.
 // You see your build in 3D but never its silhouettes until you commit — that is the skill.
 import * as THREE from 'three';
 import { randomPolycube, extents, type Cell } from '../polycube';
-import { SketchStage, cubeGroup, layerBuilder, gridPicker, panel, hud, h, mulberry32, pulseMats, COLOR_OK, COLOR_BAD, cellKey, sleep } from './kit';
+import { SketchStage, cubeGroup, layerBuilder, gridPicker, panel, h, mulberry32, pulseMats, COLOR_OK, COLOR_BAD, cellKey, sleep } from './kit';
 import type { SketchDef, MountCtx } from './types';
 import { Log } from '../log';
+import { Run } from '../run';
 
 type Dims = { w: number; h: number; d: number };
 type View = 'top' | 'front' | 'right';
 
 /** 2D keys "col,row" for each view, using the grid layouts described in the UI. */
-function project(cells: Cell[], dims: Dims): Record<View, Set<string>> {
+export function project(cells: Cell[], dims: Dims): Record<View, Set<string>> {
   const top = new Set<string>(), front = new Set<string>(), right = new Set<string>();
   for (const [x, y, z] of cells) {
     top.add(`${x},${z}`);
@@ -32,13 +33,17 @@ function makeCase(dims: Dims, n: number, rng: () => number) {
   throw new Error('no case');
 }
 
+/** Difficulty by level: more cubes in a 3³ box, then a wider box. */
+const setup = (level: number): { dims: Dims; n: number } =>
+  level < 6 ? { dims: { w: 3, h: 3, d: 3 }, n: Math.min(8, 5 + Math.floor((level + 1) / 2)) } : { dims: { w: 4, h: 3, d: 4 }, n: Math.min(10, 7 + Math.floor((level - 6) / 2)) };
+
 function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   const log = new Log();
   const stage = new SketchStage(stageEl, { ground: -0.5 });
-  const H = hud(hudEl, ['solved', 'attempts']);
-  let dims: Dims = { w: 3, h: 3, d: 3 }, n = 5, solved = 0, attempts = 0, caseAttempts = 0;
-  let hidden: Cell[] = makeCase(dims, n, mulberry32(Date.now()));
-  let target = project(hidden, dims);
+  const run = new Run({ id: 'shadows', name: 'Shadows', icon: '🔦', dailyRounds: 6 }, hudEl, stageEl);
+  let dims: Dims = { w: 3, h: 3, d: 3 }, n = 5;
+  let hidden: Cell[] = [];
+  let target = project([], dims);
   const world = new THREE.Group();
   stage.scene.add(world);
   let build: ReturnType<typeof cubeGroup> | null = null;
@@ -59,14 +64,11 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   function grids(container: HTMLElement, sets: Record<View, Set<string>>, marks?: Record<View, Set<string>>) {
     container.replaceChildren();
     const spec: [View, number, number, string][] = [['top', dims.w, dims.d, 'top (x →, far ↑)'], ['front', dims.w, dims.h, 'front (x →, y ↑)'], ['right', dims.d, dims.h, 'right side (depth ←, y ↑)']];
-    const out = {} as Record<View, ReturnType<typeof gridPicker>>;
     for (const [v, w, hgt, label] of spec) {
       const g = gridPicker(container, w, hgt, { readonly: true, label });
       g.set(sets[v]);
       if (marks) for (const k of marks[v]) g.mark(k, sets[v].has(k) ? 'extra' : 'miss');
-      out[v] = g;
     }
-    return out;
   }
 
   function refresh() {
@@ -87,9 +89,9 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   stage.onResize = frame;
 
   function newCase() {
-    hidden = makeCase(dims, n, mulberry32(Date.now()));
+    ({ dims, n } = setup(run.level));
+    hidden = makeCase(dims, n, mulberry32(run.nextSeed()));
     target = project(hidden, dims);
-    caseAttempts = 0;
     builderBox.replaceChildren();
     LB = layerBuilder(builderBox, dims, { onChange: refresh, max: n });
     grids(views, target);
@@ -100,14 +102,14 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     LB.enabled = true;
     P.message('');
     P.clearPost();
-    H.set('solved', solved); H.set('attempts', attempts);
-    log.push('present', { sketch: 'projection', dims, n, hidden });
+    log.push('present', { sketch: 'shadows', mode: run.mode, level: run.level, dims, n, hidden });
   }
 
   async function commit() {
     const cells = LB.cells;
     if (cells.length !== n) { P.message(`Place exactly ${n} cubes (you have ${cells.length}).`, 'bad'); return; }
-    attempts++; caseAttempts++;
+    commitB.disabled = clearB.disabled = true;
+    LB.enabled = false;
     const mine = project(cells, dims);
     const diff = {} as Record<View, Set<string>>;
     let bad = 0;
@@ -116,39 +118,33 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
       bad += diff[v].size;
     }
     const ok = bad === 0;
-    log.push('result', { sketch: 'projection', attempt: caseAttempts, ok, cells, badCells: bad });
+    log.push('result', { sketch: 'shadows', ok, cells, badCells: bad });
     grids(resultViews, mine, diff);
     resultBox.hidden = false;
     if (build) void pulseMats(stage.ticker, [build.mats.base, build.mats.marker], ok ? COLOR_OK : COLOR_BAD);
-    if (ok) {
-      solved++;
-      commitB.disabled = clearB.disabled = true;
-      LB.enabled = false;
-      const same = cells.length === hidden.length && cells.every((c) => hidden.some((d) => cellKey(c) === cellKey(d)));
-      if (!same) {
-        // Consistent with every view but not the object that cast them: show it.
-        await sleep(400);
-        const ghost = cubeGroup(hidden, { ghost: true, color: 0xf5a524 });
-        world.add(ghost.group);
-      }
-      P.message(same ? 'Exactly the hidden object.' : 'Your build casts all three silhouettes — a valid answer. The actual hidden object is shown in orange; the views could not tell them apart.', 'ok');
-      if (caseAttempts === 1) { if (n < 8) n++; else if (dims.w < 4) { dims = { w: 4, h: 3, d: 4 }; n = 6; } }
-      H.set('solved', solved); H.set('attempts', attempts);
-      P.post([{ label: 'Next ↵', primary: true, onClick: newCase }]);
-    } else {
-      P.message(`${bad} cell${bad > 1 ? 's' : ''} disagree across the three views — outlined red are missing, solid red are extra. Fix and commit again.`, 'bad');
-      H.set('attempts', attempts);
+    const same = cells.length === hidden.length && cells.every((c) => hidden.some((d) => cellKey(c) === cellKey(d)));
+    if (!same) {
+      // Show the object that actually cast the silhouettes, as an orange ghost.
+      await sleep(400);
+      world.add(cubeGroup(hidden, { ghost: true, color: 0xf5a524 }).group);
     }
+    ok ? run.hit() : run.miss();
+    P.message(ok
+      ? (same ? 'Exactly the hidden object.' : 'Your build casts all three silhouettes — a valid answer. The actual object is the orange ghost; the views could not tell them apart.')
+      : `${bad} cell${bad > 1 ? 's' : ''} disagree across the views — outlined red are missing, solid red are extra. The hidden object is the orange ghost.`, ok ? 'ok' : 'bad');
+    if (run.over) run.showOver(newCase);
+    else P.post([{ label: 'Next ↵', primary: true, onClick: newCase }]);
   }
 
+  run.onModeChange = newCase;
   newCase();
   const onKey = (e: KeyboardEvent) => { if (e.key === 'Enter') { if (!commitB.disabled) commit(); else (panelEl.querySelector('#post:not([hidden]) button.primary') as HTMLButtonElement | null)?.click(); } };
   window.addEventListener('keydown', onKey);
   return () => { window.removeEventListener('keydown', onKey); stage.dispose(); };
 }
 
-export const projection: SketchDef = {
-  id: 'projection', title: 'Projection Detective', status: 'playable', skill: '2D → 3D reconstruction',
+export const shadows: SketchDef = {
+  id: 'shadows', title: 'Shadows', status: 'playable', skill: '2D → 3D reconstruction', icon: '🔦',
   tagline: 'Top, front and side silhouettes of a hidden object. Build what casts them — you see your build in 3D, but its silhouettes stay hidden until you commit.',
   mount,
 };

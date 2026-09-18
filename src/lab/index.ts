@@ -5,16 +5,13 @@ import { h } from './kit';
 import { renderFrame } from './frame';
 import type { SketchDef } from './types';
 import { GAMES, PACK } from '../games';
-import { projection } from './projection';
-import { hidden } from './hidden';
-import { copycat } from './copycat';
 import { concepts } from './concepts';
 
 const ROSTER: SketchDef[] = [
   PACK,
   ...GAMES.map((g) => ({ ...g, href: `${g.id}/` })),
   { id: 'match', title: 'Transform Combo', tagline: 'Find the turn sequence that maps one shape onto another.', skill: 'rotation sequencing', status: 'playable', href: 'match.html' },
-  projection, hidden, copycat, ...concepts,
+  ...concepts,
 ];
 
 const app = document.getElementById('app')!;

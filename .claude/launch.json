@@ -1,6 +1,7 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "bricksy", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev"], "port": 5173 }
+    { "name": "bricksy", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev"], "port": 5173 },
+    { "name": "bricksy-5174", "runtimeExecutable": "npx", "runtimeArgs": ["vite", "--strictPort", "--port", "5174"], "port": 5174 }
   ]
 }

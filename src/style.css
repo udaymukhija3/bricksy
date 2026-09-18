@@ -210,3 +210,8 @@ button, .chip, .grid .cell, .choice { touch-action: manipulation; -webkit-tap-hi
 .muted { color: var(--muted); }
 .overlay .card .muted { color: var(--muted); }
 @media (max-width: 640px) { .tf-map { min-height: 520px; height: 70dvh; } }
+
+/* ---- Count ---- */
+input.num { font: inherit; font-weight: 700; font-size: 18px; width: 4.5ch; text-align: center; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 4px; -moz-appearance: textfield; appearance: textfield; }
+input.num::-webkit-outer-spin-button, input.num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.stepper button { padding: 8px 10px; min-width: 40px; }
