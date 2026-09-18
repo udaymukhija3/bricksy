@@ -5,7 +5,7 @@ import { applyMoves, bboxMin, isPlanar, normalize, orientations, randomPolycube,
 import { SketchStage, cubeGroup, voxelMesh, turnQueue, panel, mulberry32, pick, sleep, pulseMats, easeIn, easeOut, COLOR_OK, COLOR_BAD, AXIS_VEC } from './kit.ts';
 import type { SketchDef, MountCtx } from './types.ts';
 import { Log } from '../log.ts';
-import { Run, today } from '../run.ts';
+import { Run } from '../run.ts';
 
 import { PLATE, GAP, silhouette, placeSil, passes, plateFor, type Wall } from '../smuggle-model.ts';
 
@@ -94,7 +94,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   let startRound = 0;
   let runLevel = 0; // the level this run was drawn at (a restored run keeps it, whatever the round now is)
   interface SavedRun { startRound: number; moves: Move[]; wallIdx: number; turns: number; wallMissed: boolean }
-  const RUN_KEY = () => `bricksy.smuggle.run.${today()}`;
+  const RUN_KEY = () => `bricksy.smuggle.run.${game.date}`;
   const saveRun = () => { if (game.mode === 'daily') try { localStorage.setItem(RUN_KEY(), JSON.stringify({ startRound, moves, wallIdx, turns, wallMissed } satisfies SavedRun)); } catch { /* quota or private mode */ } };
   const clearRun = () => { try { localStorage.removeItem(RUN_KEY()); } catch { /* ignore */ } };
   const loadRun = (): SavedRun | null => {

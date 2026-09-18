@@ -59,6 +59,9 @@ export class Run {
   best: number;
   bestStreak: number;
   readonly sfx = new Sfx();
+  /** The daily this page is playing: pinned when the page opens, so a daily started before midnight keeps its date, its seeds and its record. */
+  readonly date: string;
+  readonly day: number;
   private hudEls: Record<string, HTMLElement> = {};
   private hudRoot: HTMLElement;
   private overlay: HTMLElement;
@@ -72,6 +75,9 @@ export class Run {
   constructor(opts: RunOpts, hudEl: HTMLElement, stageEl: HTMLElement) {
     this.opts = opts;
     this.lives = opts.lives ?? 3;
+    const now = new Date();
+    this.date = today(now);
+    this.day = dayNumber(now);
     this.mode = (localStorage.getItem(`bricksy.${opts.id}.mode`) as Mode) || 'daily';
     this.best = Number(localStorage.getItem(`bricksy.${opts.id}.best`)) || 0;
     this.bestStreak = Number(localStorage.getItem(`bricksy.${opts.id}.bestStreak`)) || 0;
@@ -86,7 +92,7 @@ export class Run {
   /** Difficulty input: round index in a daily, score in endless — so a daily is the same for everyone. */
   get level() { return DEV_LEVEL ?? (this.mode === 'daily' ? this.round : this.score); }
   get over() { return this.mode === 'daily' ? this.round >= this.dailyRounds : this.lives <= 0; }
-  get dailyDone() { return dailyRecord(this.opts.id)?.done ?? false; }
+  get dailyDone() { return dailyRecord(this.opts.id, this.date)?.done ?? false; }
   get stats() { return statsOf(this.opts.id); }
 
   /** Seed for the next round: date-derived in a daily, random otherwise. */
@@ -95,7 +101,7 @@ export class Run {
   }
   /** Today's seed for a given round — for a game whose one puzzle spans several rounds and must be regenerated after a reload. */
   seedFor(round: number) {
-    return hash(`${this.opts.id}|${today()}|${round}`);
+    return hash(`${this.opts.id}|${this.date}|${round}`);
   }
 
   /**
@@ -159,7 +165,7 @@ export class Run {
 
   private restoreDaily() {
     if (this.mode !== 'daily') return;
-    const rec = dailyRecord(this.opts.id);
+    const rec = dailyRecord(this.opts.id, this.date);
     if (!rec) return;
     this.results = [...rec.results];
     this.round = Math.min(this.results.length, this.dailyRounds);
@@ -171,14 +177,14 @@ export class Run {
   private saveDaily() {
     if (this.mode !== 'daily') return;
     const done = this.round >= this.dailyRounds;
-    write(`bricksy.${this.opts.id}.daily.${today()}`, { results: this.results, done } satisfies DailyRecord);
+    write(`bricksy.${this.opts.id}.daily.${this.date}`, { results: this.results, done } satisfies DailyRecord);
     if (done) this.recordDailyStats();
   }
   private recordDailyStats() {
     const st = this.stats;
-    const t = today();
+    const t = this.date;
     if (st.lastDate === t) return; // already counted
-    const y = new Date(); y.setDate(y.getDate() - 1);
+    const y = new Date(this.date + 'T12:00:00'); y.setDate(y.getDate() - 1);
     st.dayStreak = st.lastDate === today(y) ? st.dayStreak + 1 : 1;
     st.bestDayStreak = Math.max(st.bestDayStreak, st.dayStreak);
     st.lastDate = t;
@@ -206,7 +212,7 @@ export class Run {
     }
     for (const b of this.hudEls.mode.querySelectorAll('.seg-btn')) b.classList.toggle('on', (b as HTMLElement).dataset.mode === this.mode);
     if (this.mode === 'daily') {
-      this.hudEls.a.innerHTML = `#${dayNumber()} · round <b>${Math.min(this.round + 1, this.dailyRounds)}/${this.dailyRounds}</b>`;
+      this.hudEls.a.innerHTML = `#${this.day} · round <b>${Math.min(this.round + 1, this.dailyRounds)}/${this.dailyRounds}</b>`;
       this.hudEls.b.innerHTML = this.results.map((r) => (r ? '🟩' : '🟥')).join('') || '<b>—</b>';
       this.hudEls.b.className = 'stat';
       this.hudEls.c.innerHTML = `streak <b>${this.streak}</b>`;
@@ -224,7 +230,7 @@ export class Run {
   shareText() {
     const grid = this.results.map((r) => (r ? '🟩' : '🟥')).join('');
     const head = this.mode === 'daily'
-      ? `${this.opts.icon ?? ''} ${this.opts.name} #${dayNumber()} · ${this.score}/${this.dailyRounds}`
+      ? `${this.opts.icon ?? ''} ${this.opts.name} #${this.day} · ${this.score}/${this.dailyRounds}`
       : `${this.opts.icon ?? ''} ${this.opts.name} · endless · ${this.score}`;
     return `${head.trim()}\n${grid}\n${location.origin}${location.pathname}`;
   }
@@ -251,7 +257,7 @@ export class Run {
     const st = this.stats;
     const title = daily ? `${this.score}/${this.dailyRounds} today` : `Run over · ${this.score}`;
     const sub = daily
-      ? `${this.opts.name} #${dayNumber()} · same ${this.dailyRounds} puzzles for everyone. Day streak ${st.dayStreak}${st.bestDayStreak > st.dayStreak ? ` (best ${st.bestDayStreak})` : ''} · ${st.played} played${st.totalRounds ? ` · avg ${(this.dailyRounds * st.totalScore / st.totalRounds).toFixed(1)}/${this.dailyRounds}` : ''}.`
+      ? `${this.opts.name} #${this.day} · same ${this.dailyRounds} puzzles for everyone. Day streak ${st.dayStreak}${st.bestDayStreak > st.dayStreak ? ` (best ${st.bestDayStreak})` : ''} · ${st.played} played${st.totalRounds ? ` · avg ${(this.dailyRounds * st.totalScore / st.totalRounds).toFixed(1)}/${this.dailyRounds}` : ''}.`
       : `Best ${this.best} · best streak ${this.bestStreak}`;
     const next = h('p.muted.next');
     // Score distribution over every daily played, today's bar highlighted — the Wordle habit.
