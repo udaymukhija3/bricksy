@@ -130,7 +130,7 @@ without it?"*
 | --- | --- | --- |
 | **Smuggle** | rotation planning | orientation carries over between walls, so each wall is planned from where the last left you; par by 0-1 BFS; a fourth wall from level 6; after a bonk, *Show a fit* plays the fewest turns through from where you are (the miss stands) |
 | **Mirror** | rotation vs reflection | only chiral, non-planar shapes (planar shapes flip over in 3D and are never chiral); 5 cubes, then 6, 7, 8; from level 2 a third answer — a different shape with one cube moved, provably neither rotation nor mirror — so the guess floor drops from 50% to 33%; the reveal fits A to B over rotations *and* translations |
-| **Assemble** | part–whole composition | every part gets turns and an anchor *before* anything moves; the first collision stops the build, so one part at a time with live feedback is impossible |
+| **Assemble** | part–whole composition | every part gets turns and an anchor *before* anything moves; the first collision stops the build, so one part at a time with live feedback is impossible; anchors are set by tapping a layer grid of the target or the ghost itself |
 | **Cut** | cross-section prediction | distractors are other real cross-sections, filtered to be visibly different; planes nudged off the lattice; six options from level 8 |
 | **Fold** | net → solid | all 11 nets, tested; from level 6 two faces are asked and both must be right |
 | **Shadows** | 2D → 3D reconstruction | your build's silhouettes stay hidden until commit (else it collapses into Picross 3D); the cube count is fixed so the maximal-object trick fails; 3³ → 4×3×4 → 4³ boxes, up to 13 cubes |

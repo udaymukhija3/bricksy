@@ -25,10 +25,51 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   let trayPos: THREE.Vector3[] = [];
   let anchorMarks = new THREE.Group();
 
-  // ---- panel: part chips · the active part's turn queue · message
+  // ---- panel: part chips · anchor grid (a layer-by-layer view of the target) · the active part's turn queue · message
   const chipsEl = h('div.parts');
+  const anchorsEl = h('div');
   const queuesEl = h('div');
-  panelEl.append(chipsEl, queuesEl);
+  panelEl.append(chipsEl, anchorsEl, queuesEl);
+  const anchorCells = new Map<string, HTMLButtonElement>();
+
+  /** Layer grids of the target; tapping a cell anchors the active part there (same as clicking the ghost). */
+  function buildAnchorGrid() {
+    anchorsEl.replaceChildren();
+    anchorCells.clear();
+    const xs = puzzle.target.map((c) => c[0]), ys = puzzle.target.map((c) => c[1]), zs = puzzle.target.map((c) => c[2]);
+    const w = Math.max(...xs) + 1, hgt = Math.max(...ys) + 1, d = Math.max(...zs) + 1;
+    const cells = new Set(puzzle.target.map(cellKey));
+    const wrap = h('div.layers');
+    for (let y = 0; y < hgt; y++) {
+      const grid = h('div.grid', { style: { gridTemplateColumns: `repeat(${w}, 1fr)` } });
+      for (let z = d - 1; z >= 0; z--) for (let x = 0; x < w; x++) {
+        const k = cellKey([x, y, z]);
+        const inTarget = cells.has(k);
+        const b = h('button.cell' + (inTarget ? '' : '.void'), { disabled: inTarget ? null : 'true', title: inTarget ? `anchor at ${k}` : null, onclick: () => setAnchor([x, y, z]) }) as HTMLButtonElement;
+        if (inTarget) anchorCells.set(k, b);
+        grid.append(b);
+      }
+      wrap.append(h('div.layer', {}, h('div.layer-label', {}, `layer ${y + 1}${y === 0 ? ' (bottom)' : ''}`), grid));
+    }
+    anchorsEl.append(h('div.layer-label', {}, 'anchor: tap a target cell (far row at the top), or click the ghost'), wrap);
+  }
+  function paintAnchorGrid() {
+    for (const [k, b] of anchorCells) {
+      const owner = plans.findIndex((p) => p.anchor && cellKey(p.anchor) === k);
+      b.style.background = owner >= 0 ? '#' + PART_COLORS[owner].toString(16).padStart(6, '0') : '';
+      b.style.borderColor = owner >= 0 ? '#f5a524' : '';
+      b.classList.toggle('on', owner >= 0);
+    }
+  }
+  function setAnchor(cell: Cell, depth = 0, under = 1) {
+    if (busy || done) return;
+    plans[active].anchor = cell;
+    renderAnchors();
+    renderChips();
+    paintAnchorGrid();
+    log.push('anchor', { sketch: 'assemble', part: active, anchor: cell, depth });
+    P.message(`Part ${active + 1}'s handle will land on ${cellKey(cell)}${under > 1 ? ` — ${under} cells under the cursor, click again for the next one back` : ''}.`);
+  }
   const P = panel(panelEl);
   let queues: ReturnType<typeof turnQueue>[] = [];
   const queueBoxes: HTMLElement[] = [];
@@ -101,6 +142,8 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     done = false; busy = false;
     buildScene();
     renderAnchors();
+    buildAnchorGrid();
+    paintAnchorGrid();
     for (const q of queues) q.dispose();
     queues = []; queueBoxes.length = 0;
     queuesEl.replaceChildren();
@@ -127,11 +170,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     const cells = hits.map((h) => h.object.userData.cell as Cell);
     const keys = cells.map(cellKey).join('|');
     lastPick = keys === lastPick.keys ? { keys, idx: (lastPick.idx + 1) % cells.length } : { keys, idx: 0 };
-    plans[active].anchor = cells[lastPick.idx];
-    renderAnchors();
-    renderChips();
-    log.push('anchor', { sketch: 'assemble', part: active, anchor: plans[active].anchor, depth: lastPick.idx });
-    P.message(`Part ${active + 1}'s handle will land on ${cellKey(plans[active].anchor!)}${cells.length > 1 ? ` — ${cells.length} cells under the cursor, click again for the next one back` : ''}.`);
+    setAnchor(cells[lastPick.idx], lastPick.idx, cells.length);
   }
   stage.canvas.addEventListener('click', onClick);
 
@@ -182,6 +221,9 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     P.clearPost();
     parts.forEach((p, i) => { p.group.position.copy(trayPos[i]); p.group.quaternion.identity(); });
     anchorMarks.clear();
+    plans = puzzle.parts.map((pt) => ({ moves: [...pt.solution.moves], anchor: pt.solution.anchor }));
+    renderAnchors();
+    paintAnchorGrid();
     await sleep(300);
     for (let i = 0; i < puzzle.parts.length; i++) { select(i); await flyIn(i, puzzle.parts[i].solution); void pulseMats(stage.ticker, [parts[i].mats.base], COLOR_OK, 500); await sleep(120); }
     parts.forEach((p) => { p.mats.base.emissive.set(0x000000); });
