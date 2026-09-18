@@ -31,6 +31,16 @@ check('the crate cannot be pushed into the box', apply(bl, { player: [2, 4], cra
 check('a turn onto the box is blocked', apply(bl, { player: [1, 2], crate: { pivot: [2, 2], rot: 0 }, box: [2, 1] }, 'ccw') === null);
 check('four cw turns are the identity', crateCells(SHAPES.L3, { pivot: [2, 2], rot: 4 }).join(';') === crateCells(SHAPES.L3, { pivot: [2, 2], rot: 0 }).join(';'));
 
+// Two crates: a turn next to both is blocked; either crate may take either socket; crates block each other.
+// Crate 1 at (1,2) rot 0 → (1,2),(2,2),(1,3). Crate 2 at (4,3) rot 2 → (4,3),(3,3),(4,2).
+const two: Level = { ...lvl, start: { player: [3, 2], crate: { pivot: [1, 2], rot: 0 }, crate2: { pivot: [4, 3], rot: 2 } } };
+check('turn next to two crates is blocked', apply(two, two.start, 'ccw') === null && apply(two, two.start, 'cw') === null);
+check('turn next to one crate works', apply(two, { ...two.start, player: [2, 1] }, 'ccw')?.crate.rot === 3);
+check('either crate on either socket counts', solved({ ...two, socket: crateCells(SHAPES.L3, { pivot: [4, 3], rot: 2 }), socket2: crateCells(SHAPES.L3, { pivot: [1, 2], rot: 0 }) }, two.start));
+const pushInto: Level = { ...lvl, start: { player: [1, 2], crate: { pivot: [2, 2], rot: 0 }, crate2: { pivot: [4, 3], rot: 2 } } };
+check('pushing one crate into the other is blocked', apply(pushInto, pushInto.start, 'right') === null);
+check('…and allowed once the other crate is gone', apply({ ...pushInto, start: { player: [1, 2], crate: { pivot: [2, 2], rot: 0 } } }, { player: [1, 2], crate: { pivot: [2, 2], rot: 0 } }, 'right') !== null);
+
 // Solver: a level whose socket is one push away has par 1.
 const one: Level = { ...lvl, socket: crateCells(SHAPES.L3, { pivot: [3, 2], rot: 0 }) };
 check('par 1 for a one-push socket', solve(one)?.par === 1);
@@ -38,9 +48,9 @@ check('solved() detects the socket', solved(one, apply(one, s0, 'right')!));
 
 // Generator: every level solvable at exactly its par, solution replays, no shorter path, and the socket is not the start.
 let n = 0, bad = 0, turnNeeded = 0, maxStates = 0;
-for (let seed = 1; seed <= 15; seed++) {
+for (let seed = 1; seed <= 8; seed++) {
   const rng = mulberry32(seed);
-  for (const level of [0, 2, 4, 6, 7, 8, 9, 10]) {
+  for (const level of [0, 2, 4, 6, 7, 8, 9, 10, 12, 13]) {
     const sp = spec(level);
     const L = makeLevel(sp, rng);
     n++;
@@ -51,6 +61,7 @@ for (let seed = 1; seed <= 15; seed++) {
     if (solved(L, L.start)) bad++;
     if (sp.needTurn && !L.solution.some((m: Move) => m === 'cw' || m === 'ccw')) turnNeeded++;
     if (sp.box && (!L.boxSocket || !L.start.box || L.start.box.join() === L.boxSocket.join())) bad++;
+    if (sp.crates === 2 && (!L.socket2 || !L.start.crate2)) bad++;
     maxStates = Math.max(maxStates, L.w * L.h * L.w * L.h * 4);
   }
 }

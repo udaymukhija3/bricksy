@@ -20,6 +20,8 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   const world = new THREE.Group();
   stage.scene.add(world);
   let crate!: ReturnType<typeof cubeGroup>;
+  let crate2: ReturnType<typeof cubeGroup> | null = null;
+  const crateMats = () => [crate.mats.base, crate.mats.marker, ...(crate2 ? [crate2.mats.base, crate2.mats.marker] : [])];
   let player!: THREE.Mesh;
   let box: THREE.Mesh | null = null;
 
@@ -90,7 +92,8 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     // Socket: a thin green plate in the crate's target footprint, with the pivot cell brighter.
     // The outline ignores depth so the target footprint shows through the crate when they overlap.
     const sock = new THREE.Group();
-    level.socket.forEach((p, i) => {
+    [...level.socket, ...(level.socket2 ?? [])].forEach((p, i) => {
+      i %= level.socket.length;
       const fill = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.06, 0.92), new THREE.MeshBasicMaterial({ color: i === 0 ? 0x7ee39a : 0x46a758, transparent: true, opacity: 0.5 }));
       fill.position.set(p[0], -0.46, p[1]);
       const line = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(0.92, 0.06, 0.92)), new THREE.LineBasicMaterial({ color: 0x9fe0ad, depthTest: false, transparent: true, opacity: 0.9 }));
@@ -117,6 +120,8 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     const rel = crateCells(level.shape, { pivot: [0, 0], rot: 0 }).map((p) => [p[0], 0, p[1]] as Cell);
     crate = cubeGroup(rel, { marker: 0, color: 0xa8703a });
     world.add(crate.group);
+    crate2 = null;
+    if (level.start.crate2) { crate2 = cubeGroup(rel, { marker: 0, color: 0x8a5a2e }); world.add(crate2.group); }
     player = new THREE.Mesh(new THREE.SphereGeometry(0.32, 24, 16), new THREE.MeshStandardMaterial({ color: 0x3e8ff5, roughness: 0.5 }));
     player.castShadow = true;
     world.add(player);
@@ -126,6 +131,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   function syncScene() {
     crate.group.position.copy(at(state.crate.pivot));
     crate.group.rotation.y = -(state.crate.rot & 3) * Math.PI / 2;
+    if (crate2 && state.crate2) { crate2.group.position.copy(at(state.crate2.pivot)); crate2.group.rotation.y = -(state.crate2.rot & 3) * Math.PI / 2; }
     player.position.copy(at(state.player, -0.18));
     if (box && state.box) box.position.copy(at(state.box, -0.07));
   }
@@ -142,32 +148,37 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     P.message('');
     P.clearPost();
     goB.disabled = undoB.disabled = clearB.disabled = giveUpB.disabled = false;
-    hintEl.textContent = level.boxSocket
-      ? `Crate onto the green socket, pivot on the bright cell — and the teal box onto its teal socket. The box only pushes.`
-      : `Crate onto the green socket, orange pivot cube on the bright cell. You turn it from a cell next to it.`;
-    log.push('present', { sketch: 'shove', mode: run.mode, level: run.level, room: { w: level.w, h: level.h, walls: level.walls, shape: level.shape, start: level.start, socket: level.socket, boxSocket: level.boxSocket, par: level.par }, budget });
+    hintEl.textContent = level.socket2
+      ? `Two crates, two sockets — either crate on either socket, pivots on the bright cells. A turn next to both crates is blocked: step until you're next to one.`
+      : level.boxSocket
+        ? `Crate onto the green socket, pivot on the bright cell — and the teal box onto its teal socket. The box only pushes.`
+        : `Crate onto the green socket, orange pivot cube on the bright cell. You turn it from a cell next to it.`;
+    log.push('present', { sketch: 'shove', mode: run.mode, level: run.level, room: { w: level.w, h: level.h, walls: level.walls, shape: level.shape, start: level.start, socket: level.socket, socket2: level.socket2, boxSocket: level.boxSocket, par: level.par }, budget });
   }
 
   /** Animate one already-validated transition. */
   async function animate(from: State, to: State, m: Move) {
+    // Whichever crate changed is the one that moves on screen.
+    const which = to.crate2 && from.crate2 && (key(from.crate2.pivot) !== key(to.crate2.pivot) || (from.crate2.rot & 3) !== (to.crate2.rot & 3)) ? crate2! : crate;
+    const fromC = which === crate2 ? from.crate2! : from.crate, toC = which === crate2 ? to.crate2! : to.crate;
     if (isTurn(m)) {
-      const r0 = crate.group.rotation.y, r1 = r0 + (m === 'cw' ? -1 : 1) * Math.PI / 2;
+      const r0 = which.group.rotation.y, r1 = r0 + (m === 'cw' ? -1 : 1) * Math.PI / 2;
       run.sfx.turn();
-      await stage.tween(TURN_MS, (t) => { crate.group.rotation.y = r0 + (r1 - r0) * easeInOut(t); });
+      await stage.tween(TURN_MS, (t) => { which.group.rotation.y = r0 + (r1 - r0) * easeInOut(t); });
     } else {
       const p0 = at(from.player, -0.18), p1 = at(to.player, -0.18);
-      const c0 = at(from.crate.pivot), c1 = at(to.crate.pivot);
-      const pushed = key(from.crate.pivot) !== key(to.crate.pivot);
+      const c0 = at(fromC.pivot), c1 = at(toC.pivot);
+      const pushed = key(fromC.pivot) !== key(toC.pivot);
       const boxed = !!(from.box && to.box && key(from.box) !== key(to.box));
       const b0 = from.box ? at(from.box, -0.07) : null, b1 = to.box ? at(to.box, -0.07) : null;
       if (pushed || boxed) run.sfx.thud(); else run.sfx.click();
-      await stage.tween(STEP_MS, (t) => { const k = easeOut(t); player.position.lerpVectors(p0, p1, k); if (pushed) crate.group.position.lerpVectors(c0, c1, k); if (boxed && box && b0 && b1) box.position.lerpVectors(b0, b1, k); });
+      await stage.tween(STEP_MS, (t) => { const k = easeOut(t); player.position.lerpVectors(p0, p1, k); if (pushed) which.group.position.lerpVectors(c0, c1, k); if (boxed && box && b0 && b1) box.position.lerpVectors(b0, b1, k); });
     }
     syncScene();
   }
   async function bump(m: Move) {
     run.sfx.miss();
-    if (isTurn(m)) { void pulseMats(stage.ticker, [crate.mats.base, crate.mats.marker], COLOR_BAD, 600); await stage.shake(220, 0.08); return; }
+    if (isTurn(m)) { void pulseMats(stage.ticker, crateMats(), COLOR_BAD, 600); await stage.shake(220, 0.08); return; }
     const p0 = player.position.clone(), d = DIRS[m];
     await stage.tween(160, (t) => { const k = Math.sin(t * Math.PI) * 0.3; player.position.set(p0.x + d[0] * k, p0.y, p0.z + d[1] * k); });
     player.position.copy(p0);
@@ -201,7 +212,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     goB.disabled = undoB.disabled = clearB.disabled = false;
     renderStatus();
     renderPlan();
-    if (blockedAt >= 0) P.message(`Move ${blockedAt + 1} (${MOVE_GLYPH[moves[blockedAt]]}) was blocked — the rest of the plan was dropped.`, 'bad');
+    if (blockedAt >= 0) P.message(`Move ${blockedAt + 1} (${MOVE_GLYPH[moves[blockedAt]]}) was blocked${isTurn(moves[blockedAt]) && level.socket2 ? ' (a turn needs exactly one crate next to you, with room to swing)' : ''} — the rest of the plan was dropped.`, 'bad');
   }
 
   function giveUp() { if (!busy && !done) void finish(false, 'Gave up.'); }
@@ -209,7 +220,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   async function finish(ok: boolean, why = '') {
     done = true; busy = false;
     goB.disabled = undoB.disabled = clearB.disabled = giveUpB.disabled = true;
-    void pulseMats(stage.ticker, [crate.mats.base, crate.mats.marker], ok ? COLOR_OK : COLOR_BAD);
+    void pulseMats(stage.ticker, crateMats(), ok ? COLOR_OK : COLOR_BAD);
     log.push('result', { sketch: 'shove', ok, used, par: level.par, why });
     ok ? run.hit() : run.miss();
     P.message(ok ? `Seated in ${used} moves (par ${level.par}).` : `${why} Par was ${level.par}.`, ok ? 'ok' : 'bad');
@@ -228,7 +239,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     syncScene();
     await sleep(300);
     for (const m of level.solution) { const next = apply(level, state, m)!; const prev = state; state = next; await animate(prev, state, m); await sleep(60); }
-    void pulseMats(stage.ticker, [crate.mats.base, crate.mats.marker], COLOR_OK);
+    void pulseMats(stage.ticker, crateMats(), COLOR_OK);
     busy = false;
     log.push('reveal', { sketch: 'shove' });
     P.post([{ label: 'Next ↵', primary: true, onClick: newLevel }]);

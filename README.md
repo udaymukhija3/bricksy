@@ -138,7 +138,7 @@ without it?"*
 | **Flash** | spatial memory | cube count (4 → 8), then look time (3 → 1.2 s), then a 90° view turn before you build so memory has to survive a rotation |
 | **Tilt** | motion under a rotated frame | ≥2 cubes move and the socket is empty beforehand |
 | **Gears** | motion through a system | direction, then speed |
-| **Shove** | planning under irreversible moves | plans of 2–4 moves execute without pause and stop at the first blocked move; no undo; budget par + 3; levels are generated from the reachable state space so par is exact; later levels need a turn, then add a push-only box with its own socket (the box must move too, so ordering is part of the plan) |
+| **Shove** | planning under irreversible moves | plans of 2–4 moves execute without pause and stop at the first blocked move; no undo; budget par + 3; levels are generated from the reachable state space so par is exact; later levels need a turn, then add a push-only box with its own socket (the box must move too, so ordering is part of the plan), then a second turnable crate — either crate on either socket, and a turn next to both is blocked |
 | **Wayfind** | perspective taking · mental maps | mazes get loops so wall-following is a bad strategy; a hit is a walk with *no* wrong turn; later the start heading no longer matches the map's up, so two frames must be aligned; 4×4 → 9×9 rooms; you always start facing a corridor |
 | **Mate** | multi-step transformation lookahead | attack = the piece's shadow minus its anchor; the post-move shadow is never previewed; puzzles are brute-forced to a unique answer, forced to be a turn, then a turn about a horizontal axis (the shadow changes shape); from level 8 (endless) it is mate in two — no single move mates, the king steps to the square that leaves you the fewest answers, and every reply must have one |
 
@@ -211,8 +211,7 @@ Hovering a turn button lights that axis in the gizmo and flips its arrow for −
 - Removing the gizmo (axis convention is prerequisite knowledge, not the skill).
 - Translation / multiple candidate holes in pack (would add placement, diluting rotation).
 - The transfer test: static drawings of the same problems, no 3D.
-- A full opponent in Mate (mate in two is the first step toward one) and a
-  second turnable crate in Shove (the push-only box is the first step): each
+- A full opponent in Mate (mate in two is the first step toward one): each
   game ships with the smallest ruleset that makes its skill necessary; the
   dials above are where difficulty grows.
 - In dev, `?level=N` on any game page pins the difficulty so late levels can

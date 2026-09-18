@@ -34,8 +34,12 @@ export function rotated(shape: P[], rot: number): P[] {
 }
 
 export interface Crate { pivot: P; rot: number }
-/** `box`: a second, one-cell crate that can only be pushed (never turned), with its own socket. */
-export interface State { player: P; crate: Crate; box?: P }
+/**
+ * `box`: a second, one-cell crate that can only be pushed (never turned), with its own socket.
+ * `crate2`: a second crate of the same shape, pushed and turned like the first; either crate may
+ * fill either socket. A turn next to both crates is blocked — step until you are next to one.
+ */
+export interface State { player: P; crate: Crate; box?: P; crate2?: Crate }
 export interface Level {
   w: number; h: number;
   walls: string[];
@@ -43,12 +47,15 @@ export interface Level {
   start: State;
   socket: P[];
   boxSocket?: P;
+  socket2?: P[];
   par: number;
   solution: Move[];
 }
 
 export const crateCells = (shape: P[], c: Crate) => rotated(shape, c.rot).map((p) => add(p, c.pivot));
-export const stateKey = (s: State) => `${key(s.player)}|${key(s.crate.pivot)}|${s.crate.rot & 3}${s.box ? '|' + key(s.box) : ''}`;
+const crateKey = (c: Crate) => `${key(c.pivot)}|${c.rot & 3}`;
+/** Identical crates are interchangeable, so the key orders them. */
+export const stateKey = (s: State) => `${key(s.player)}|${s.crate2 ? [crateKey(s.crate), crateKey(s.crate2)].sort().join('/') : crateKey(s.crate)}${s.box ? '|' + key(s.box) : ''}`;
 
 const wallSets = new WeakMap<string[], Set<string>>();
 const wallSet = (level: Level) => { let w = wallSets.get(level.walls); if (!w) { w = new Set(level.walls); wallSets.set(level.walls, w); } return w; };
@@ -57,38 +64,47 @@ const wallSet = (level: Level) => { let w = wallSets.get(level.walls); if (!w) {
 export function apply(level: Level, s: State, m: Move): State | null {
   const walls = wallSet(level);
   const free = (p: P) => p[0] >= 0 && p[1] >= 0 && p[0] < level.w && p[1] < level.h && !walls.has(key(p)) && !(s.box && same(p, s.box));
-  const cells = crateCells(level.shape, s.crate);
+  const crates: Crate[] = s.crate2 ? [s.crate, s.crate2] : [s.crate];
+  const cellsOf = crates.map((c) => crateCells(level.shape, c));
+  const withCrate = (i: number, c: Crate): Partial<State> => (i === 0 ? { crate: c } : { crate2: c });
+  const adjacentTo = (i: number) => cellsOf[i].some((c) => Object.values(DIRS).some((d) => same(add(c, d), s.player)));
+  const occupiedByOther = (i: number, p: P) => cellsOf.some((cs, j) => j !== i && cs.some((c) => same(c, p)));
   if (isTurn(m)) {
-    // Turn the crate you are standing next to. Destination cells must be free and not under you.
-    const adjacent = cells.some((c) => Object.values(DIRS).some((d) => same(add(c, d), s.player)));
-    if (!adjacent) return null;
-    const crate = { pivot: s.crate.pivot, rot: (s.crate.rot + (m === 'cw' ? 1 : 3)) & 3 };
+    // Turn the one crate you are standing next to; next to both is ambiguous and blocked.
+    const near = crates.map((_, i) => i).filter(adjacentTo);
+    if (near.length !== 1) return null;
+    const i = near[0];
+    const crate = { pivot: crates[i].pivot, rot: (crates[i].rot + (m === 'cw' ? 1 : 3)) & 3 };
     const next = crateCells(level.shape, crate);
-    if (!next.every((c) => free(c) && !same(c, s.player))) return null;
-    return { ...s, crate };
+    if (!next.every((c) => free(c) && !same(c, s.player) && !occupiedByOther(i, c))) return null;
+    return { ...s, ...withCrate(i, crate) };
   }
   const d = DIRS[m];
   const np = add(s.player, d);
   if (s.box && same(np, s.box)) {
-    // Push the box one step; it cannot enter a wall, the crate, or leave the room.
+    // Push the box one step; it cannot enter a wall, a crate, or leave the room.
     const to = add(s.box, d);
-    if (!free(to) || cells.some((c) => same(c, to))) return null;
+    if (!free(to) || cellsOf.some((cs) => cs.some((c) => same(c, to)))) return null;
     return { ...s, player: np, box: to };
   }
   if (!free(np)) return null;
-  if (cells.some((c) => same(c, np))) {
+  const hit = cellsOf.findIndex((cs) => cs.some((c) => same(c, np)));
+  if (hit >= 0) {
     // Push: every crate cell moves one step; all destinations must be free (its own old cells count as free).
-    const moved = cells.map((c) => add(c, d));
-    if (!moved.every((c) => free(c) && !same(c, s.player))) return null;
-    return { ...s, player: np, crate: { pivot: add(s.crate.pivot, d), rot: s.crate.rot } };
+    const moved = cellsOf[hit].map((c) => add(c, d));
+    if (!moved.every((c) => free(c) && !same(c, s.player) && !occupiedByOther(hit, c))) return null;
+    return { ...s, player: np, ...withCrate(hit, { pivot: add(crates[hit].pivot, d), rot: crates[hit].rot }) };
   }
   return { ...s, player: np };
 }
 
+const cellSetKey = (cells: P[]) => cells.map(key).sort().join(';');
 export const solved = (level: Level, s: State) => {
-  const cells = crateCells(level.shape, s.crate).map(key).sort().join(';');
-  if (cells !== level.socket.map(key).sort().join(';')) return false;
-  return !level.boxSocket || (!!s.box && same(s.box, level.boxSocket));
+  if (level.boxSocket && !(s.box && same(s.box, level.boxSocket))) return false;
+  const a = cellSetKey(crateCells(level.shape, s.crate)), s1 = cellSetKey(level.socket);
+  if (!s.crate2 || !level.socket2) return a === s1;
+  const b = cellSetKey(crateCells(level.shape, s.crate2)), s2 = cellSetKey(level.socket2);
+  return (a === s1 && b === s2) || (a === s2 && b === s1);
 };
 
 interface Node { s: State; dist: number; prev: Node | null; move: Move | null }
@@ -123,7 +139,7 @@ export function solve(level: Level): { par: number; solution: Move[] } | null {
   return best ? { par: best.dist, solution: pathTo(best) } : null;
 }
 
-export interface Spec { w: number; h: number; obstacles: number; shape: keyof typeof SHAPES; parMin: number; parMax: number; needTurn: boolean; box?: boolean }
+export interface Spec { w: number; h: number; obstacles: number; shape: keyof typeof SHAPES; parMin: number; parMax: number; needTurn: boolean; box?: boolean; crates?: 1 | 2 }
 
 /** Difficulty by level: bigger rooms, more clutter, longer solutions, a crate that must be turned, then a second box in the way. */
 export function spec(level: number): Spec {
@@ -132,7 +148,9 @@ export function spec(level: number): Spec {
   if (level < 6) return { w: 7, h: 7, obstacles: 3, shape: 'L3', parMin: 7, parMax: 9, needTurn: true };
   if (level < 8) return { w: 7, h: 7, obstacles: 2, shape: 'L3', parMin: 8, parMax: 12, needTurn: true, box: true };
   if (level < 10) return { w: 8, h: 8, obstacles: 5, shape: level % 2 ? 'L4' : 'T4', parMin: 10, parMax: 14, needTurn: true };
-  return { w: 8, h: 8, obstacles: 3, shape: level % 2 ? 'L4' : 'T4', parMin: 12, parMax: 18, needTurn: true, box: true };
+  if (level < 12) return { w: 8, h: 8, obstacles: 3, shape: level % 2 ? 'L4' : 'T4', parMin: 12, parMax: 18, needTurn: true, box: true };
+  // Two crates of one shape, either on either socket: the classic Sokoban interaction.
+  return { w: 7, h: 7, obstacles: level % 2, shape: 'L3', parMin: 10, parMax: 18, needTurn: false, crates: 2 };
 }
 
 /** Random room + crate + player; the socket is a crate configuration at the wanted distance. */
@@ -156,22 +174,31 @@ export function makeLevel(sp: Spec, rng: () => number): Level {
       box = [1 + rnd(w - 2), 1 + rnd(h - 2)];
       if (!inRoom(box) || cells.some((c) => same(c, box!)) || same(box, player)) continue;
     }
-    const base: Level = { w, h, walls: [...walls], shape, start: { player, crate, ...(box ? { box } : {}) }, socket: [], par: 0, solution: [] };
+    let crate2: Crate | undefined;
+    if (sp.crates === 2) {
+      crate2 = { pivot: [1 + rnd(w - 2), 1 + rnd(h - 2)], rot: rnd(4) };
+      const c2 = crateCells(shape, crate2);
+      if (!c2.every((c) => inRoom(c) && !cells.some((x) => same(x, c)) && !same(c, player))) continue;
+    }
+    const base: Level = { w, h, walls: [...walls], shape, start: { player, crate, ...(box ? { box } : {}), ...(crate2 ? { crate2 } : {}) }, socket: [], par: 0, solution: [] };
     // Distinct crate (and box) configurations by their fewest-moves distance (over all player positions).
-    const reach = explore(base, sp.box ? 120000 : 60000);
+    const reach = explore(base, sp.box || sp.crates === 2 ? 120000 : 60000);
     const byConfig = new Map<string, Node>();
+    const configKey = (st: State) => stateKey({ ...st, player: [0, 0] });
     for (const n of reach.values()) {
-      const k = `${key(n.s.crate.pivot)}|${n.s.crate.rot & 3}${n.s.box ? '|' + key(n.s.box) : ''}`;
+      const k = configKey(n.s);
       const cur = byConfig.get(k);
       if (!cur || n.dist < cur.dist) byConfig.set(k, n);
     }
+    const startCfg = configKey(base.start);
     const goals = [...byConfig.values()].filter((n) => n.dist >= sp.parMin && n.dist <= sp.parMax
       && (!sp.needTurn || (n.s.crate.rot & 3) !== (crate.rot & 3))
-      && (!box || !same(n.s.box!, box))); // the box must have to move too
+      && (!box || !same(n.s.box!, box)) // the box must have to move too
+      && (!crate2 || (configKey(n.s) !== startCfg && crateKey(n.s.crate) !== crateKey(crate) && crateKey(n.s.crate2!) !== crateKey(crate2)))); // both crates must move
     if (!goals.length) continue;
     const goal = goals[rnd(goals.length)];
     const socket = crateCells(shape, goal.s.crate);
-    const level: Level = { ...base, socket, ...(box ? { boxSocket: goal.s.box } : {}), par: goal.dist, solution: pathTo(goal) };
+    const level: Level = { ...base, socket, ...(box ? { boxSocket: goal.s.box } : {}), ...(crate2 ? { socket2: crateCells(shape, goal.s.crate2!) } : {}), par: goal.dist, solution: pathTo(goal) };
     // Sanity: the solver agrees with the pick (the socket may be reachable via a shorter route through another player position — that is the true par).
     const s = solve(level);
     if (!s || s.par < sp.parMin) continue;
