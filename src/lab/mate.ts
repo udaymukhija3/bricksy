@@ -77,7 +77,10 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
 
   // ---- scene
   const n = () => state.n;
-  const frame = () => stage.place(30, 56, stage.fit((n() * Math.SQRT2) / 2 + 0.6, 1.05), [(n() - 1) / 2, 0.3, (n() - 1) / 2]);
+  // The camera looks in from the king's side of the board (one of four quarters, 30° off-axis), so
+  // the pieces that hem it in can never stand between the king and the eye. The gizmo shows the axes.
+  const azimuth = () => { const c = (n() - 1) / 2, dx = puzzle.king[0] - c, dz = puzzle.king[1] - c; if (!dx && !dz) return 30; return [30, 120, 210, 300].reduce((best, az) => (Math.sin((az * Math.PI) / 180) * dx + Math.cos((az * Math.PI) / 180) * dz > Math.sin((best * Math.PI) / 180) * dx + Math.cos((best * Math.PI) / 180) * dz ? az : best)); };
+  const frame = () => stage.place(azimuth(), 56, stage.fit((n() * Math.SQRT2) / 2 + 0.6, 1.05), [(n() - 1) / 2, 0.3, (n() - 1) / 2]);
   stage.onResize = frame;
   const plate = (p: P, color: number, y = -0.46, size = 0.94, opacity = 0.45) => {
     const m = new THREE.Mesh(new THREE.BoxGeometry(size, 0.04, size), new THREE.MeshBasicMaterial({ color, transparent: true, opacity }));
