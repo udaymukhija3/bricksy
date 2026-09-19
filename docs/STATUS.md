@@ -1,6 +1,6 @@
 # Status — is each game a product yet?
 
-Updated 2026-09-18. The bar for "product": own page · daily (seeded, reload-safe, locks when
+Updated 2026-09-19. The bar for "product": own page · daily (seeded, reload-safe, locks when
 done) + endless · difficulty escalates by level and the generator never throws (`npm test`
 sweeps every generator at every level) · a miss teaches (reveal or *show answer*) · help panel
 with controls, *why this game* and the player's learning curve · phone layout · logging with
@@ -17,12 +17,12 @@ with controls, *why this game* and the player's learning curve · phone layout �
 | 📐 Fold | ✓ | 1-4-1 nets → all 11; two faces at L6 | folds, tumbles, marks faces | two-face round played | nothing beyond two faces |
 | 🔦 Shadows | ✓ | 5→13 cubes, 3³ → 4³ | diff grids; *Fix it (practice)* until it casts right; *Show the object* | miss → fix → fixed | — |
 | 🔢 Count | ✓ | 3×3 → 6×6, heights 3→4 | 540° reveal, hidden in orange | L9 loads | plateau after L14 |
-| ⚡ Flash | ✓ | 4→8 cubes, 3 → 1.2 s, turned view | ghost overlay; your extra cubes turn red | L0 played | — |
+| ⚡ Flash | ✓ | 4→8 cubes, 3 → 1.2 s, turned view | ghost overlay; your extra cubes turn red | L0 played; ready gate → look → mode switch (phone) | — |
 | 🎲 Tilt | ✓ | 4→6 rooms, 3→6 loose; two sockets from L10 | cubes fall, sockets pulse, verdict names both | L10 two-socket round | — |
 | ⚙️ Gears | ✓ | 4→9 gears, speed at L3, compounds at L5/L8/L12 | train runs, marks | L13 loads | plateau after L12 |
 | 🏗️ Shove | ✓ | par 3→18, turn needed at L4, box at L6, L4/T4 crates at L8, two crates at L12 | *Show solution* | solved at par, blocked plan, box replay, two-crate replay | heavy levels take up to ~0.4 s to generate |
-| 🧭 Wayfind | ✓ | 4×4 → 9×9, loops 0→5, random heading at L3; one wrong turn forgiven at 8×8+ | trail + a shortest route on the map | walk, dead end, give up | no "rotated map" variant |
-| ♟️ Mate | ✓ | any → turn → tilt → 3 pieces → mate in two at L8 → a guard at L10 | escape squares, *Show answer* (both plies) | mate-in-one hit, mate-in-two miss + replay, guard round | guard is static; mate in two only in endless |
+| 🧭 Wayfind | ✓ | 4×4 → 9×9, loops 0→5, random heading at L3; one wrong turn forgiven at 8×8+ | trail + a shortest route on the map | walk, dead end, give up; ready gate (phone) | no "rotated map" variant |
+| ♟️ Mate | ✓ (camera now faces the king's quarter — it was hidden behind its own attackers on #2 round 1) | any → turn → tilt → 3 pieces → mate in two at L8 → a guard at L10 | escape squares, *Show answer* (both plies) | mate-in-one hit, mate-in-two miss + replay, guard round; #2 round 1 on phone + desktop | guard is static; mate in two only in endless |
 | 🔁 Match | prototype 0, deliberately bare (control condition) | 5 levels, own progression | replay / reveal | — | not a product by design |
 
 Later still: daily archive (`?day=N`), hub share-the-day and seven-day strip, Tight Fit endless shift, two-crate Shove, Mate guard, three-way Mirror, Tilt two sockets, Assemble grid anchors, Shadows practice, generator sweep.
@@ -38,6 +38,19 @@ engine-independent (Safari and V8 no longer see different distractors for one se
 service worker prompts a reload when it has fetched a newer page than the one on screen; every
 page has an error guard (persistent toast + `error` event in the log).
 
+2026-09-19 (phone pass, all 18 pages smoke-tested in the production build at 375×812 and
+desktop): the result card scrolls when taller than the stage (on a phone, from the second daily
+on, Share / Practice / next-daily were cut off and unreachable); Flash and Wayfind wait behind an
+opaque *Ready* gate for the first look after a page opens and pause the look while the tab is
+hidden; Mate's camera faces the king's quarter of the board; Tight Fit's job card pins to the
+viewport; "Tap" instead of "Click" on touch devices; a *feedback* link in every footer opens a
+GitHub issue pre-filled with game, daily number and device; the service worker is network-first
+for pages (a deploy reaches the next visit; offline still serves the cached game — both
+verified in the preview). Not changed: Shadows' panel is tall on a phone (three silhouettes
+above the layer builder — playable, but a lot of thumb travel); Smuggle shows only the current
+wall's opening by design.
+
 Cross-cutting, still open: **deploy is blocked by the GitHub Actions billing lock** (live site
-is the Sept 13 build); no server, so streaks and stats are per device; no accounts; no
-analytics beyond the local log (by design).
+is the Sept 13 build; every push since fails in 5 s with "account is locked due to a billing
+issue" — nothing in this repo can fix that); no server, so streaks and stats are per device; no
+accounts; no analytics beyond the local log (by design).
