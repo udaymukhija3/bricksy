@@ -12,6 +12,7 @@ import { Run } from './run.ts';
 import { helpCard } from './lab/frame.ts';
 import { PACK } from './games.ts';
 import { COLOR_OK, COLOR_BAD } from './render-common.ts';
+import { feedbackLink } from './feedback.ts';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -76,6 +77,7 @@ const el = {
   retry: $<HTMLButtonElement>('retry'), replay: $<HTMLButtonElement>('replay'), skip: $<HTMLButtonElement>('skip'), next: $<HTMLButtonElement>('next'),
   stageBox: $('stage'), puzzleId: $('puzzleId'), export: $('export'), reset: $('resetProgress'),
 };
+el.export.before(feedbackLink(PACK.title));
 const postButtons = [el.retry, el.replay, el.skip, el.next];
 
 const moveButtons = new Map<Move, HTMLButtonElement>();

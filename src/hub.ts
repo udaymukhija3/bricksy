@@ -9,6 +9,7 @@ import { GROUPS, TIGHT_FIT } from './games.ts';
 import { dailyRecord, dayNumber, dateOfDay, statsOf, today } from './run.ts';
 import { toast } from './lab/kit.ts';
 import { Log } from './log.ts';
+import { REPO, feedbackLink } from './feedback.ts';
 
 const app = document.getElementById('app')!;
 const games = [TIGHT_FIT, ...GROUPS.flatMap((g) => g.games)];
@@ -73,7 +74,8 @@ app.replaceChildren(
   ]),
   h('footer', {},
     h('span', {}, 'Everything — streaks, results, the event log — stays on this device. No accounts, no tracking.'),
-    h('a', { href: 'https://github.com/udaymukhija3/bricksy' }, 'source ↗'),
+    h('a', { href: REPO }, 'source ↗'),
+    feedbackLink('hub'),
     h('button', { onclick: () => new Log().export(), title: 'Every action, as JSON' }, 'Export log'),
     h('button', { onclick: () => { if (confirm('Erase all bricksy data on this device: streaks, today\'s results, bests, stars and the event log?')) { for (const k of Object.keys(localStorage)) if (k.startsWith('bricksy.')) localStorage.removeItem(k); location.reload(); } } }, 'Reset everything'),
   ),

@@ -12,6 +12,7 @@ import { EPISODE, JOBS, STAGE_NAMES, dailyJob, shiftJob, type JobDef } from './j
 import { today, dayNumber, dailyRecord, statsOf } from '../run.ts';
 import { helpCard } from '../lab/frame.ts';
 import { TIGHT_FIT } from '../games.ts';
+import { feedbackLink } from '../feedback.ts';
 
 const app = document.getElementById('app')!;
 const sfx = new Sfx();
@@ -91,6 +92,7 @@ function renderMap() {
     dailyCard,
     shiftCard,
     map,
+    h('footer', {}, h('span.mono', {}, 'bricksy · tightfit'), h('a', { href: '../lab.html' }, 'lab ↗'), feedbackLink(TIGHT_FIT.title), h('button', { onclick: () => log.export(), title: 'Every action, as JSON' }, 'Export log')),
   );
 }
 

@@ -5,6 +5,7 @@ import { h } from './kit.ts';
 import { Log } from '../log.ts';
 import { progress } from '../progress.ts';
 import { dailyRecord, dayNumber, dateOfDay } from '../run.ts';
+import { feedbackLink } from '../feedback.ts';
 import type { SketchDef } from './types.ts';
 
 const fmtMs = (ms: number | null) => (ms == null ? '—' : ms < 10000 ? `${(ms / 1000).toFixed(1)}s` : `${Math.round(ms / 1000)}s`);
@@ -47,6 +48,7 @@ export function renderFrame(app: HTMLElement, def: SketchDef, backHref: string, 
     h('footer', {},
       h('span.mono', {}, `bricksy · ${def.id}`),
       h('a', { href: `${backHref}lab.html` }, 'lab ↗'),
+      feedbackLink(def.title),
       h('button', { onclick: () => new Log().export(), title: 'Every action, as JSON' }, 'Export log'),
       h('button', { onclick: () => { if (confirm(`Clear ${def.title} progress (streaks, today's daily, bests) and the event log?`)) { new Log().clear(); for (const k of Object.keys(localStorage)) if (k.startsWith(`bricksy.${def.id}.`)) localStorage.removeItem(k); location.reload(); } } }, 'Reset'),
     ),
