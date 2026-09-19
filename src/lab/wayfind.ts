@@ -3,7 +3,7 @@
 // the map's up, so two frames of reference have to be aligned before memory is any use.
 import * as THREE from 'three';
 import type { Cell } from '../polycube.ts';
-import { SketchStage, voxelMesh, panel, h, mulberry32, sleep, easeInOut, easeOut, untilHelpClosed, helpOpen } from './kit.ts';
+import { SketchStage, voxelMesh, panel, h, mulberry32, sleep, easeInOut, easeOut, untilHelpClosed, untilReady, dismissReady, lookPaused } from './kit.ts';
 import type { SketchDef, MountCtx } from './types.ts';
 import { Log } from '../log.ts';
 import { Run } from '../run.ts';
@@ -28,6 +28,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   stageEl.append(fade);
   let skipLook = false;
   const gotIt = h('button.gotit', { hidden: true, onclick: () => { skipLook = true; } }, 'I’ve got it →');
+  let firstLook = true;
   stageEl.append(gotIt);
   let startMarker!: THREE.Object3D, trail!: THREE.Group;
   let yaw = 0;
@@ -94,6 +95,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
 
   async function newMaze() {
     const my = ++gen;
+    dismissReady(stageEl);
     const sp = spec(run.level);
     m = generate(sp.rooms, sp.loops, mulberry32(run.nextSeed()), sp.heading);
     tolerance = sp.tolerance;
@@ -111,10 +113,11 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     log.push('present', { sketch: 'wayfind', mode: run.mode, level: run.level, maze: { rooms: m.rooms, loops: sp.loops, open: m.open, start: m.start, goal: m.goal, heading: m.heading, par: m.par }, showMs: sp.showMs, cut: sp.cut });
     await untilHelpClosed(stageEl);
     if (gen !== my) return;
+    if (firstLook) { firstLook = false; await untilReady(stageEl); if (gen !== my) return; } // the page just opened: wait for the player
     skipLook = false;
     gotIt.hidden = false;
     const t0 = performance.now();
-    for (let ms = sp.showMs; ms > 0 && !skipLook; ms -= 100) { overlay.textContent = (ms / 1000).toFixed(1); await sleep(100); if (gen !== my) return; while (helpOpen(stageEl)) { await sleep(100); if (gen !== my) return; } }
+    for (let ms = sp.showMs; ms > 0 && !skipLook; ms -= 100) { overlay.textContent = (ms / 1000).toFixed(1); await sleep(100); if (gen !== my) return; while (lookPaused(stageEl)) { await sleep(100); if (gen !== my) return; } } // the clock stops while help is open or the tab is hidden
     gotIt.hidden = true;
     overlay.textContent = '';
     log.push('looked', { sketch: 'wayfind', ms: Math.round(performance.now() - t0), early: skipLook });

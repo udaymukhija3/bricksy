@@ -15,6 +15,27 @@ export async function untilHelpClosed(stageEl: HTMLElement) {
   await sleep(0); // the first-visit card opens right after mount; let it
   while (helpOpen(stageEl)) await sleep(100);
 }
+/** A timed look should not run while nobody can see it: help open, or the tab in the background. */
+export const lookPaused = (stageEl: HTMLElement) => helpOpen(stageEl) || document.hidden;
+/**
+ * A gate before a timed look: a button over the stage, resolved when it is pressed (or Enter).
+ * For the first round after a page opens, so the clock never starts before the player is looking —
+ * on a phone the page may not even have been scrolled to yet. A later call replaces an earlier gate.
+ */
+const readyGates = new WeakMap<HTMLElement, () => void>();
+/** Lift a pending gate (a new round started underneath it: mode switch, practice after a finished daily). */
+export const dismissReady = (stageEl: HTMLElement) => readyGates.get(stageEl)?.();
+export function untilReady(stageEl: HTMLElement, label = 'Ready — show me ↵') {
+  dismissReady(stageEl);
+  return new Promise<void>((resolve) => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Enter' && !helpOpen(stageEl)) { e.preventDefault(); done(); } };
+    const done = () => { wrap.remove(); window.removeEventListener('keydown', onKey); readyGates.delete(stageEl); resolve(); };
+    const wrap = h('div.overlay.readywrap', {}, h('button.primary.ready', { onclick: done }, label));
+    readyGates.set(stageEl, done);
+    window.addEventListener('keydown', onKey);
+    stageEl.append(wrap);
+  });
+}
 export const cssColor = (n: number) => '#' + n.toString(16).padStart(6, '0');
 export const cellKey = (c: Cell) => c.join(',');
 

@@ -1,7 +1,7 @@
 // Flash: see a shape for a few seconds, then rebuild it from memory.
 import * as THREE from 'three';
 import { randomPolycube, extents, normalize, shapeKey, type Cell } from '../polycube.ts';
-import { SketchStage, cubeGroup, layerBuilder, panel, h, mulberry32, pulseMats, COLOR_OK, COLOR_BAD, cellKey, sleep, untilHelpClosed, helpOpen } from './kit.ts';
+import { SketchStage, cubeGroup, layerBuilder, panel, h, mulberry32, pulseMats, COLOR_OK, COLOR_BAD, cellKey, sleep, untilHelpClosed, untilReady, dismissReady, lookPaused } from './kit.ts';
 import type { SketchDef, MountCtx } from './types.ts';
 import { Log } from '../log.ts';
 import { Run } from '../run.ts';
@@ -39,6 +39,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   stageEl.append(overlay);
   let skipLook = false;
   const gotIt = h('button.gotit', { hidden: true, onclick: () => { skipLook = true; } }, 'I’ve got it →');
+  let firstLook = true;
   stageEl.append(gotIt);
   const builderBox = h('div');
   panelEl.append(builderBox);
@@ -70,6 +71,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
 
   async function newCase() {
     const my = ++gen;
+    dismissReady(stageEl);
     ({ n, showMs, turnView } = setup(run.level));
     original = makeCase(dims, n, mulberry32(run.nextSeed()));
     builderBox.replaceChildren();
@@ -90,6 +92,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     frame();
     await untilHelpClosed(stageEl);
     if (gen !== my) return;
+    if (firstLook) { firstLook = false; await untilReady(stageEl); if (gen !== my) return; } // the page just opened: wait for the player
     skipLook = false;
     gotIt.hidden = false;
     const t0 = performance.now();
@@ -97,7 +100,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
       overlay.textContent = (ms / 1000).toFixed(1);
       await sleep(100);
       if (gen !== my) return;
-      while (helpOpen(stageEl)) { await sleep(100); if (gen !== my) return; } // the clock stops while help is open
+      while (lookPaused(stageEl)) { await sleep(100); if (gen !== my) return; } // the clock stops while help is open or the tab is hidden
     }
     gotIt.hidden = true;
     overlay.textContent = '';
