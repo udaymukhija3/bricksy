@@ -1,7 +1,7 @@
 // Gravity Rooms: a room with loose cubes. The room is about to turn. Which cube ends up in the socket?
 import * as THREE from 'three';
 import { rotateCell, type Cell, type Move, MOVES, moveLabel } from '../polycube.ts';
-import { SketchStage, cubeGroup, voxelMesh, panel, h, mulberry32, pick, sleep, easeIn, cellKey, COLOR_OK, COLOR_BAD, pulseMats, cubeGeo, edgeGeo } from './kit.ts';
+import { SketchStage, cubeGroup, voxelMesh, panel, h, mulberry32, pick, sleep, easeIn, cellKey, COLOR_OK, COLOR_BAD, pulseMats, cubeGeo, edgeGeo, TAP, tap } from './kit.ts';
 import type { SketchDef, MountCtx } from './types.ts';
 import { Log } from '../log.ts';
 import { Run } from '../run.ts';
@@ -70,7 +70,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   let loose!: ReturnType<typeof cubeGroup>;
   let picks: number[] = [];
   const commitB = h('button.primary', { onclick: commit, title: 'Enter' }, 'Turn the room ↵') as HTMLButtonElement;
-  const instr = h('p', { style: { margin: 0, color: 'var(--muted)' } }, 'Click the cube you think lands in the orange socket after the turn.');
+  const instr = h('p', { style: { margin: 0, color: 'var(--muted)' } }, `${TAP} the cube you think lands in the orange socket after the turn.`);
   panelEl.append(instr, h('div#actions', {}, commitB));
   const P = panel(panelEl);
   const off = () => (room.n - 1) / 2;
@@ -106,7 +106,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     });
     frame();
     picks = [];
-    instr.textContent = room.sockets.length === 2 ? 'Two sockets: click the cube that lands in the orange one, then the cube that lands in the purple one.' : 'Click the cube you think lands in the orange socket after the turn.';
+    instr.textContent = room.sockets.length === 2 ? `Two sockets: ${tap} the cube that lands in the orange one, then the cube that lands in the purple one.` : `${TAP} the cube you think lands in the orange socket after the turn.`;
     commitB.disabled = false;
     P.message('');
     P.clearPost();
@@ -165,6 +165,6 @@ export const gravity: SketchDef = {
   id: 'tilt', title: 'Tilt', status: 'playable', skill: 'predicting motion under a rotated frame', icon: '🎲',
   tagline: 'The room is about to turn. Gravity stays down — the room doesn\'t. Pick the cube that ends in the socket, then turn it.',
   about: 'Gravity stays down while the room turns, so you have to imagine motion in a frame that is no longer yours. Rooms are only served when at least two cubes move and the socket starts empty, so nothing can be read off the picture.',
-  controls: 'Click a cube (or press 1–6), then Turn the room (Enter). The gizmo shows the turn.',
+  controls: `${TAP} a cube (or press 1–6), then Turn the room (Enter). The gizmo shows the turn.`,
   mount,
 };

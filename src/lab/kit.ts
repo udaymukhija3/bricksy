@@ -36,6 +36,9 @@ export function untilReady(stageEl: HTMLElement, label = 'Ready — show me ↵'
     stageEl.append(wrap);
   });
 }
+/** The verb for pointing at something on screen: 'Tap' on a touch device, 'Click' otherwise (copy only). */
+export const TAP = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Click';
+export const tap = TAP.toLowerCase();
 export const cssColor = (n: number) => '#' + n.toString(16).padStart(6, '0');
 export const cellKey = (c: Cell) => c.join(',');
 

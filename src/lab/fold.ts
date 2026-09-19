@@ -1,7 +1,7 @@
 // Fold: a cube net with symbols. Which face ends up opposite the marked one? Commit, then it folds.
 import * as THREE from 'three';
 import { NETS, hinges, hingeRotation, opposite, type Net } from './nets.ts';
-import { SketchStage, panel, h, mulberry32, pick, sleep, easeInOut } from './kit.ts';
+import { SketchStage, panel, h, mulberry32, pick, sleep, easeInOut, TAP } from './kit.ts';
 import type { SketchDef, MountCtx } from './types.ts';
 import { Log } from '../log.ts';
 import { Run } from '../run.ts';
@@ -41,7 +41,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   const world = new THREE.Group();
   stage.scene.add(world);
   const commitB = h('button.primary', { onclick: commit, title: 'Enter' }, 'Fold it ↵') as HTMLButtonElement;
-  panelEl.append(h('p', { style: { margin: 0, color: 'var(--muted)' } }, 'Click the face you think ends up opposite the highlighted one.'), h('div#actions', {}, commitB));
+  panelEl.append(h('p', { style: { margin: 0, color: 'var(--muted)' } }, `${TAP} the face you think ends up opposite the highlighted one.`), h('div#actions', {}, commitB));
   const P = panel(panelEl);
   const frame = () => stage.place(20, 46, stage.fit(2.7, 1.02), [0, -0.3, 0]);
   stage.onResize = frame;
@@ -168,6 +168,6 @@ export const fold: SketchDef = {
   id: 'fold', title: 'Fold', status: 'playable', skill: 'net → solid', icon: '📐',
   tagline: 'A flat net, each face marked. Which face lands opposite the highlighted one? Commit, then watch it fold.',
   about: 'Folding a net is the classic spatial test: which faces meet, which end up opposite. All eleven cube nets are used, and the fold is shown after you commit, never before.',
-  controls: 'Click the face you think ends opposite the marked one, then Fold it (Enter).',
+  controls: `${TAP} the face you think ends opposite the marked one, then Fold it (Enter).`,
   mount,
 };

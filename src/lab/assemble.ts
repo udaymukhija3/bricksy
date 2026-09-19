@@ -3,7 +3,7 @@
 // collision stops the build. The whole composition is the unit of prediction.
 import * as THREE from 'three';
 import type { Cell } from '../polycube.ts';
-import { SketchStage, cubeGroup, turnQueue, panel, h, mulberry32, sleep, easeInOut, pulseMats, COLOR_OK, COLOR_BAD, cubeGeo, edgeGeo } from './kit.ts';
+import { SketchStage, cubeGroup, turnQueue, panel, h, mulberry32, sleep, easeInOut, pulseMats, COLOR_OK, COLOR_BAD, cubeGeo, edgeGeo, tap } from './kit.ts';
 import type { SketchDef, MountCtx } from './types.ts';
 import { Log } from '../log.ts';
 import { Run } from '../run.ts';
@@ -51,7 +51,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
       }
       wrap.append(h('div.layer', {}, h('div.layer-label', {}, `layer ${y + 1}${y === 0 ? ' (bottom)' : ''}`), grid));
     }
-    anchorsEl.append(h('div.layer-label', {}, 'anchor: tap a target cell (far row at the top), or click the ghost'), wrap);
+    anchorsEl.append(h('div.layer-label', {}, `anchor: tap a target cell (far row at the top), or ${tap} the ghost`), wrap);
   }
   function paintAnchorGrid() {
     for (const [k, b] of anchorCells) {
@@ -68,7 +68,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     renderChips();
     paintAnchorGrid();
     log.push('anchor', { sketch: 'assemble', part: active, anchor: cell, depth });
-    P.message(`Part ${active + 1}'s handle will land on ${cellKey(cell)}${under > 1 ? ` — ${under} cells under the cursor, click again for the next one back` : ''}.`);
+    P.message(`Part ${active + 1}'s handle will land on ${cellKey(cell)}${under > 1 ? ` — ${under} cells under the cursor, ${tap} again for the next one back` : ''}.`);
   }
   const P = panel(panelEl);
   let queues: ReturnType<typeof turnQueue>[] = [];
@@ -88,7 +88,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
     queueBoxes.forEach((b, j) => { b.hidden = j !== i; queues[j].enabled = j === i && !done; });
     parts.forEach((p, j) => { p.mats.base.emissive.set(j === i ? 0xffffff : 0x000000); p.mats.base.emissiveIntensity = 0.18; });
     renderChips();
-    hintEl.textContent = `Part ${i + 1} (${PART_NAMES[i]}): queue its turns, then click the target cell where its orange handle cube should land.`;
+    hintEl.textContent = `Part ${i + 1} (${PART_NAMES[i]}): queue its turns, then ${tap} the target cell where its orange handle cube should land.`;
   }
 
   // ---- scene
@@ -187,7 +187,7 @@ function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   async function startBuild() {
     if (busy || done) return;
     const missing = plans.findIndex((p) => !p.anchor);
-    if (missing >= 0) { select(missing); P.message(`Part ${missing + 1} has no anchor — click a target cell for it.`, 'bad'); return; }
+    if (missing >= 0) { select(missing); P.message(`Part ${missing + 1} has no anchor — ${tap} a target cell for it.`, 'bad'); return; }
     busy = true;
     for (const q of queues) q.enabled = false;
     const out = check(puzzle, plans);
@@ -246,6 +246,6 @@ export const assemble: SketchDef = {
   id: 'assemble', title: 'Assemble', status: 'playable', skill: 'part–whole composition', icon: '🧩',
   tagline: 'A ghost of the whole and its parts, each shown turned away from how it fits. Give every part its turns and an anchor, then build — the first collision stops it.',
   about: 'Part–whole composition: several parts, one silhouette, mutual exclusion. Placing one part at a time with live feedback degrades to trial and error, so every part gets its turns and an anchor before anything moves and the first collision stops the build.',
-  controls: '1–4 select a part, x y z queue its turns (shift for −90°), click a ghost cell for its anchor (click again for the cell behind), Enter builds.',
+  controls: `1–4 select a part, x y z queue its turns (shift for −90°), ${tap} a ghost cell for its anchor (${tap} again for the cell behind), Enter builds.`,
   mount,
 };
