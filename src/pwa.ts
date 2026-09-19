@@ -1,6 +1,6 @@
 // Register the service worker in production builds only; in dev it would serve stale modules.
-// The worker serves pages cache-first, so a new deploy is one visit behind: when it has fetched a
-// newer page than the one on screen it says so, and the page offers a reload.
+// Pages are network-first, so a deploy reaches the next visit; when the network was too slow and
+// the worker served a cached page, it says so once the newer one lands, and the page offers a reload.
 import { h } from './lab/kit.ts';
 
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
