@@ -78,7 +78,9 @@ footer button { padding: 5px 10px; font-size: 12px; }
 #lives .lost { opacity: 0.25; }
 button.icon { padding: 4px 8px; font-size: 14px; line-height: 1; }
 footer a { color: var(--muted); }
-.overlay { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(20, 22, 28, 0.78); backdrop-filter: blur(3px); z-index: 4; }
+.overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; overflow: auto; background: rgba(20, 22, 28, 0.78); backdrop-filter: blur(3px); z-index: 4; }
+/* Centred when it fits; taller than the stage (a result card with its histogram on a phone) it starts at the top and scrolls. */
+.overlay > * { margin: auto; flex-shrink: 0; max-width: 100%; box-sizing: border-box; }
 .overlay .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 22px 28px; text-align: center; min-width: 260px; }
 .overlay h2 { margin: 0 0 8px; font-size: 22px; }
 .overlay p { margin: 4px 0 12px; }
@@ -193,7 +195,7 @@ button, .chip, .grid .cell, .choice { touch-action: manipulation; -webkit-tap-hi
 .stat.lives { letter-spacing: 2px; font-size: 15px; }
 .stat.lives .lost { opacity: 0.25; }
 .overlay .results { font-size: 22px; letter-spacing: 2px; margin: 6px 0 10px; }
-.overlay .row { display: flex; gap: 8px; justify-content: center; }
+.overlay .row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
 .hub { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
 .hub a.card { display: flex; gap: 14px; align-items: center; }
 .hub .icon-big { font-size: 34px; line-height: 1; }
@@ -276,7 +278,7 @@ a.button:hover { background: #2f3441; }
 /* ---- help panel ---- */
 .hudwrap { display: flex; align-items: center; gap: 10px; }
 .help-btn { width: 30px; height: 30px; padding: 0; border-radius: 50%; font-weight: 800; }
-.overlay.helpwrap { z-index: 5; align-items: start; overflow: auto; padding: 12px; }
+.overlay.helpwrap { z-index: 5; padding: 12px; }
 .overlay .card.help { text-align: left; max-width: 560px; width: 100%; margin: 0 auto; }
 .overlay .card.help h2 { font-size: 18px; }
 .overlay .card.help h2 .sub { color: var(--muted); font-weight: 400; font-size: 12px; }
