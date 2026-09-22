@@ -317,7 +317,7 @@ export function panel(container: HTMLElement, stageEl: HTMLElement | null = cont
 }
 
 /** The six turn buttons, a chip queue, undo/clear/commit. */
-export function turnQueue(container: HTMLElement, opts: { commitLabel?: string; onHover?: (axis: Axis | null, dir: 1 | -1) => void; onCommit: (moves: Move[]) => void; max?: number; /** Commit with no turns queued is a valid answer ("no turns needed"). */ allowEmpty?: boolean }) {
+export function turnQueue(container: HTMLElement, opts: { commitLabel?: string; onHover?: (axis: Axis | null, dir: 1 | -1) => void; onCommit: (moves: Move[]) => void; max?: number; availableMoves?: readonly Move[]; /** Commit with no turns queued is a valid answer ("no turns needed"). */ allowEmpty?: boolean }) {
   const queueEl = h('div#queue');
   const movesEl = h('div#moves');
   const undoB = h('button', { title: 'Backspace' }, '⌫ Undo') as HTMLButtonElement;
@@ -343,6 +343,7 @@ export function turnQueue(container: HTMLElement, opts: { commitLabel?: string; 
   const shakeQ = () => { queueEl.classList.remove('shake'); void queueEl.offsetWidth; queueEl.classList.add('shake'); };
   const add = (m: Move) => {
     if (!enabled) return;
+    if (opts.availableMoves && !opts.availableMoves.some((a) => a.axis === m.axis && a.dir === m.dir)) return;
     if (moves.length >= (opts.max ?? 6)) { shakeQ(); return; }
     moves.push(m);
     render();
@@ -352,7 +353,7 @@ export function turnQueue(container: HTMLElement, opts: { commitLabel?: string; 
   const clear = () => { if (enabled && moves.length) { moves = []; render(); api.onChange?.(moves); } };
   const commit = () => { if (!enabled) return; if (!moves.length && !opts.allowEmpty) { shakeQ(); return; } opts.onCommit([...moves]); };
 
-  for (const m of MOVES) {
+  for (const m of opts.availableMoves ?? MOVES) {
     const b = h('button.mv', {
       title: `Turn ${m.dir > 0 ? '+' : '−'}90° about ${m.axis.toUpperCase()}  (key: ${m.dir > 0 ? m.axis : '⇧' + m.axis})`,
       onclick: () => add(m),
