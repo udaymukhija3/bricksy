@@ -1,167 +1,231 @@
-// Shadows: three silhouettes of a hidden object; build what casts them.
-// You see your build in 3D but never its silhouettes until you commit — that is the skill.
-import * as THREE from 'three';
-import { randomPolycube, extents, type Cell } from '../polycube.ts';
-import { SketchStage, cubeGroup, layerBuilder, gridPicker, panel, h, mulberry32, pulseMats, COLOR_OK, COLOR_BAD, cellKey, sleep } from './kit.ts';
+// Shadows: read three silhouettes, construct a prediction, then cast it.
+import type { Cell } from '../polycube.ts';
+import { layerBuilder, panel, h, mulberry32, helpOpen } from './kit.ts';
 import type { SketchDef, MountCtx } from './types.ts';
 import { Log } from '../log.ts';
 import { Run } from '../run.ts';
+import { assess, makeCase, project, setup, validCells, VIEWS, type Dims, type View } from './shadows-model.ts';
+import { ShadowsScene } from './shadows-scene.ts';
+export { makeCase, project, setup } from './shadows-model.ts';
 
-type Dims = { w: number; h: number; d: number };
-type View = 'top' | 'front' | 'right';
+const VIEW_LABEL: Record<View, string> = { top: 'Top', front: 'Front', right: 'Right' };
+const VIEW_CAPTION: Record<View, string> = { top: 'back ↑ · front ↓', front: 'left → right', right: 'front → back' };
+const SVG_NS = 'http://www.w3.org/2000/svg';
 
-/** 2D keys "col,row" for each view, using the grid layouts described in the UI. */
-export function project(cells: Cell[], dims: Dims): Record<View, Set<string>> {
-  const top = new Set<string>(), front = new Set<string>(), right = new Set<string>();
-  for (const [x, y, z] of cells) {
-    top.add(`${x},${z}`);
-    front.add(`${x},${dims.h - 1 - y}`);
-    right.add(`${dims.d - 1 - z},${dims.h - 1 - y}`);
+function silhouette(view: View, dims: Dims, target: Set<string>, mine?: Set<string>) {
+  const cols = view === 'right' ? dims.d : dims.w, rows = view === 'top' ? dims.d : dims.h;
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${cols * 24} ${rows * 24}`);
+  svg.setAttribute('role', 'img');
+  const description: string[] = [];
+  for (let row = 0; row < rows; row++) for (let col = 0; col < cols; col++) {
+    const key = `${col},${row}`, wanted = target.has(key), placed = mine?.has(key);
+    const state = mine ? wanted && placed ? 'match' : wanted ? 'missing' : placed ? 'extra' : 'empty' : wanted ? 'target' : 'empty';
+    const rect = document.createElementNS(SVG_NS, 'rect');
+    for (const [attr, value] of Object.entries({ x: col * 24 + 2, y: row * 24 + 2, width: 20, height: 20, rx: 3, class: state })) rect.setAttribute(attr, String(value));
+    svg.append(rect);
+    if (state !== 'empty') description.push(`row ${row + 1} column ${col + 1} ${state}`);
+    if (state === 'extra') {
+      const path = document.createElementNS(SVG_NS, 'path');
+      path.setAttribute('d', `M${col * 24 + 8},${row * 24 + 8}l8,8m0,-8l-8,8`); path.setAttribute('class', 'extra-cross'); svg.append(path);
+    }
   }
-  return { top, front, right };
+  svg.setAttribute('aria-label', `${VIEW_LABEL[view]} silhouette: ${description.join('; ')}`);
+  return svg;
 }
-
-export function makeCase(dims: Dims, n: number, rng: () => number) {
-  for (let tries = 0; tries < 500; tries++) {
-    const cells = randomPolycube(n, rng);
-    const [ex, ey, ez] = extents(cells);
-    if (ex >= dims.w || ey >= dims.h || ez >= dims.d) continue;
-    // Skip shapes that are just a flat sheet: no depth to reconstruct.
-    if (ex === 0 || ey === 0 || ez === 0) continue;
-    return cells;
-  }
-  throw new Error('no case');
-}
-
-/** Difficulty by level: more cubes in a 3³ box, then a wider box. */
-export const setup = (level: number): { dims: Dims; n: number } =>
-  level < 6 ? { dims: { w: 3, h: 3, d: 3 }, n: Math.min(8, 5 + Math.floor((level + 1) / 2)) }
-    : level < 12 ? { dims: { w: 4, h: 3, d: 4 }, n: Math.min(10, 7 + Math.floor((level - 6) / 2)) }
-      : { dims: { w: 4, h: 4, d: 4 }, n: Math.min(13, 10 + Math.floor((level - 12) / 2)) };
 
 function mount({ stageEl, panelEl, hudEl, hintEl }: MountCtx) {
   const log = new Log();
-  const stage = new SketchStage(stageEl, { ground: -0.5 });
+  const frameEl = stageEl.parentElement!;
+  frameEl.classList.add('shadows-game');
   const run = new Run({ id: 'shadows', name: 'Shadows', icon: '🔦', dailyRounds: 6 }, hudEl, stageEl);
-  let dims: Dims = { w: 3, h: 3, d: 3 }, n = 5;
-  let hidden: Cell[] = [];
-  let target = project([], dims);
-  let practice = false; // after a miss: keep fixing until it casts right; the round already counted
-  const world = new THREE.Group();
-  stage.scene.add(world);
-  let build: ReturnType<typeof cubeGroup> | null = null;
+  let dims: Dims = { w: 3, h: 3, d: 3 }, n = 5, hidden: Cell[] = [];
+  let target = project([], dims), result: ReturnType<typeof assess> | null = null;
+  let phase: 'build' | 'cast' | 'result' = 'build', practice = false, generation = 0;
+  let presented = 0, firstInput = 0, draftKey = '';
+  let LB: ReturnType<typeof layerBuilder>;
+  const scene = new ShadowsScene(stageEl, (cell) => { if (canEdit()) LB.toggle(cell); });
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
 
-  // Panel: target views (left) · your build (layers, right) · results appear after commit.
-  const views = h('div.rows');
-  const targetBox = h('div', {}, h('div.layer-label', {}, 'the hidden object casts these'), views);
-  const resultViews = h('div.rows');
-  const resultBox = h('div', { hidden: true }, h('div.layer-label', {}, 'your build casts these'), resultViews);
-  const builderBox = h('div');
-  panelEl.append(h('div.rows', {}, targetBox, resultBox), builderBox);
-  const commitB = h('button.primary', { onclick: commit, title: 'Enter' }, 'Commit ↵') as HTMLButtonElement;
-  const clearB = h('button', { onclick: () => { LB.set([]); refresh(); } }, 'Clear') as HTMLButtonElement;
-  panelEl.append(h('div#actions', {}, clearB, commitB));
-  const P = panel(panelEl);
-  let LB!: ReturnType<typeof layerBuilder>;
+  const evidenceNote = h('span', {}, 'Three views. One hidden object.');
+  const cards = h('div.shadow-clues');
+  const evidence = h('section.shadow-evidence', { 'aria-label': 'Silhouette clues' },
+    h('div.shadow-section-label', {}, h('b', {}, '01 / READ THE SHADOWS'), evidenceNote), cards);
+  frameEl.insertBefore(evidence, stageEl);
+  const stageStatus = h('span', { 'aria-live': 'polite' }, 'Shadows hidden until you commit');
+  const stageTitle = h('div.shadow-stage-title', {}, h('b', {}, '02 / YOUR BUILD'), stageStatus);
+  const sceneHint = h('span', {}, 'Tap the gold layer to place cubes');
+  const orbit = (dir: number) => { if (phase === 'cast' || helpOpen(stageEl)) return; scene.turn(dir); log.push('view', { sketch: 'shadows', dir }); };
+  const turnLeft = h('button', { 'aria-label': 'View from the left', onclick: () => orbit(-1) }, '↶');
+  const turnRight = h('button', { 'aria-label': 'View from the right', onclick: () => orbit(1) }, '↷');
+  stageEl.append(stageTitle, h('div.shadow-scene-tools', {}, sceneHint, h('div', {}, turnLeft, turnRight)));
 
-  function grids(container: HTMLElement, sets: Record<View, Set<string>>, marks?: Record<View, Set<string>>) {
-    container.replaceChildren();
-    const spec: [View, number, number, string][] = [['top', dims.w, dims.d, 'top (x →, far ↑)'], ['front', dims.w, dims.h, 'front (x →, y ↑)'], ['right', dims.d, dims.h, 'right side (depth ←, y ↑)']];
-    for (const [v, w, hgt, label] of spec) {
-      const g = gridPicker(container, w, hgt, { readonly: true, label });
-      g.set(sets[v]);
-      if (marks) for (const k of marks[v]) g.mark(k, sets[v].has(k) ? 'extra' : 'miss');
+  const count = h('b', {}, '0 / 5');
+  const counter = h('div.shadow-count', {}, h('div', {}, h('span.shadow-eyebrow', {}, 'MAKE YOUR PREDICTION'), h('h2', {}, 'Build what casts them.')), h('div', {}, count, h('span', {}, 'cubes')));
+  const builderBox = h('div.shadow-builder');
+  const undoB = h('button', { onclick: () => { if (canEdit()) { log.push('undo', { sketch: 'shadows' }); LB.undo(); } }, title: 'Backspace or Ctrl/Cmd+Z' }, '↶ Undo') as HTMLButtonElement;
+  const clearB = h('button', { onclick: () => { if (canEdit()) { log.push('clear', { sketch: 'shadows' }); LB.clear(); } } }, 'Clear') as HTMLButtonElement;
+  const commitB = h('button.primary.shadow-commit', { onclick: () => void commit(), title: 'Enter' }, 'Cast shadows ↵') as HTMLButtonElement;
+  const editHelp = h('p.shadow-edit-help', {}, 'Tap a square to add or remove a cube. Change layers to build upward.');
+  const controls = h('div.shadow-controls', {}, h('div.shadow-edit-actions', {}, undoB, clearB), commitB);
+  panelEl.append(counter, builderBox, editHelp, controls);
+  const P = panel(panelEl, null);
+  const message = panelEl.querySelector('#message')!;
+  message.setAttribute('role', 'status'); message.setAttribute('aria-live', 'polite');
+  const clueEls = new Map<View, HTMLElement>();
+
+  function canEdit() { return phase === 'build' && !helpOpen(stageEl) && (!run.over || practice); }
+
+  function drawClues(revealed: View[] = []) {
+    cards.replaceChildren(); clueEls.clear();
+    for (const view of VIEWS) {
+      const shown = revealed.includes(view) && result;
+      const errors = shown ? result!.diff[view].missing.size + result!.diff[view].extra.size : 0;
+      const label = shown ? errors ? `${errors} ${errors === 1 ? 'mismatch' : 'mismatches'}` : '✓ Match' : VIEW_CAPTION[view];
+      const card = h('div.shadow-clue' + (shown ? errors ? '.has-errors' : '.matched' : ''), { 'data-view': view },
+        h('div.shadow-clue-title', {}, h('b', {}, VIEW_LABEL[view]), h('span', {}, view === 'top' ? '↓' : view === 'front' ? '↗' : '↖')),
+        silhouette(view, dims, target[view], shown ? result!.mine[view] : undefined),
+        h('span.shadow-clue-status', {}, label));
+      if (shown) card.append(h('button.shadow-inspect', { 'aria-label': `Inspect ${view} shadow`, onclick: () => {
+        if (phase !== 'result') return;
+        scene.showProjection(view, LB.cells, target[view]);
+        for (const [v, el] of clueEls) el.classList.toggle('inspecting', v === view);
+        stageStatus.textContent = `${VIEW_LABEL[view]} shadow · ${label}`;
+      } }, 'Inspect'));
+      cards.append(card); clueEls.set(view, card);
     }
+  }
+
+  function saveDraft() {
+    if (!draftKey || practice || phase !== 'build' || run.over) return;
+    try { localStorage.setItem(draftKey, JSON.stringify({ cells: LB.cells, layer: LB.activeLayer })); } catch { /* optional persistence */ }
   }
 
   function refresh() {
-    world.clear();
-    const cells = LB.cells;
-    // Box outline so position inside the volume is legible.
-    const box = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(dims.w, dims.h, dims.d)), new THREE.LineBasicMaterial({ color: 0x3a4052 }));
-    box.position.set((dims.w - 1) / 2, (dims.h - 1) / 2, (dims.d - 1) / 2);
-    world.add(box);
-    if (cells.length) {
-      build = cubeGroup(cells);
-      world.add(build.group);
-    } else build = null;
-    hintEl.textContent = `${n} cubes in a ${dims.w}×${dims.h}×${dims.d} box. Placed: ${cells.length}/${n}.`;
+    const editing = phase === 'build' && !run.over || practice && phase === 'build';
+    scene.render(LB.cells, LB.activeLayer, editing);
+    count.textContent = `${LB.cells.length} / ${n}`;
+    count.classList.toggle('complete', LB.cells.length === n);
+    commitB.disabled = !editing || LB.cells.length !== n;
+    undoB.disabled = !editing || !LB.canUndo; clearB.disabled = !editing || LB.cells.length === 0;
+    LB.enabled = editing;
+    commitB.hidden = phase === 'result';
+    controls.hidden = phase === 'result';
+    editHelp.hidden = phase !== 'build';
+    turnLeft.toggleAttribute('disabled', phase === 'cast'); turnRight.toggleAttribute('disabled', phase === 'cast');
+    sceneHint.textContent = editing ? `Editing layer ${LB.activeLayer + 1} · tap gold squares` : 'Select a shadow to inspect the projection';
+    hintEl.textContent = `${n} cubes. Any build that matches all three views wins.`;
   }
-
-  const frame = () => stage.place(35, 28, stage.fit(Math.hypot(dims.w, dims.h, dims.d) / 2 + 0.6), [(dims.w - 1) / 2, (dims.h - 1) / 2 - 0.3, (dims.d - 1) / 2]);
-  stage.onResize = frame;
 
   function newCase() {
+    generation++; phase = 'build'; practice = false; result = null;
     ({ dims, n } = setup(run.level));
-    hidden = makeCase(dims, n, mulberry32(run.nextSeed()));
-    target = project(hidden, dims);
+    const seed = run.nextSeed(); hidden = makeCase(dims, n, mulberry32(seed)); target = project(hidden, dims);
+    draftKey = run.mode === 'daily' ? `bricksy.shadows.draft.${run.date}.${seed}.${run.level}` : '';
     builderBox.replaceChildren();
-    LB = layerBuilder(builderBox, dims, { onChange: refresh, max: n });
-    grids(views, target);
-    resultBox.hidden = true;
-    practice = false;
-    commitB.textContent = 'Commit ↵';
-    refresh();
-    frame();
-    commitB.disabled = clearB.disabled = false;
-    LB.enabled = true;
-    P.message('');
-    P.clearPost();
-    log.push('present', { sketch: 'shadows', mode: run.mode, level: run.level, dims, n, hidden });
+    LB = layerBuilder(builderBox, dims, { compact: true, max: n, onChange: () => {
+      firstInput ||= performance.now();
+      log.push('edit', { sketch: 'shadows', cells: LB.cells, layer: LB.activeLayer, practice });
+      if (!practice) P.message('');
+      refresh(); saveDraft();
+    }, onLayerChange: (layer) => { refresh(); saveDraft(); log.push('layer', { sketch: 'shadows', layer }); } });
+    if (draftKey && !run.over) {
+      try {
+        const draft = JSON.parse(localStorage.getItem(draftKey) ?? 'null');
+        if (draft && validCells(draft.cells, dims, n)) { LB.set(draft.cells); LB.activeLayer = draft.layer; }
+      } catch { /* a corrupt draft must not stop a daily */ }
+    }
+    scene.reset(dims); drawClues(); refresh();
+    evidenceNote.textContent = 'Three views. One hidden object.';
+    stageStatus.textContent = 'Shadows hidden until you commit';
+    commitB.textContent = 'Cast shadows ↵'; P.clearPost(); P.message('');
+    presented = performance.now(); firstInput = 0;
+    log.push('present', { sketch: 'shadows', mode: run.mode, level: run.level, dims, n, hidden, seed });
   }
 
-  async function commit() {
-    const cells = LB.cells;
-    if (cells.length !== n) { P.message(`Place exactly ${n} cubes (you have ${cells.length}).`, 'bad'); return; }
-    commitB.disabled = clearB.disabled = true;
-    LB.enabled = false;
-    const mine = project(cells, dims);
-    const diff = {} as Record<View, Set<string>>;
-    let bad = 0;
-    for (const v of ['top', 'front', 'right'] as View[]) {
-      diff[v] = new Set([...mine[v]].filter((k) => !target[v].has(k)).concat([...target[v]].filter((k) => !mine[v].has(k))));
-      bad += diff[v].size;
-    }
-    const ok = bad === 0;
-    log.push(practice ? 'practice' : 'result', { sketch: 'shadows', ok, cells, badCells: bad });
-    grids(resultViews, mine, diff);
-    resultBox.hidden = false;
-    if (build) void pulseMats(stage.ticker, [build.mats.base, build.mats.marker], ok ? COLOR_OK : COLOR_BAD);
-    const same = cells.length === hidden.length && cells.every((c) => hidden.some((d) => cellKey(c) === cellKey(d)));
-    if (practice) {
-      // Practice after a miss: the diff is the teacher; the round's result already stands.
-      if (!ok) { P.message(`Still ${bad} cell${bad > 1 ? 's' : ''} off — outlined red missing, solid red extra.`, 'bad'); commitB.disabled = clearB.disabled = false; LB.enabled = true; return; }
-      P.message(same ? 'Fixed — exactly the hidden object.' : 'Fixed — it casts all three silhouettes now.', 'ok');
-      P.post([{ label: 'Next ↵', primary: true, onClick: newCase }]);
-      return;
-    }
-    if (!same && ok) {
-      // Show the object that actually cast the silhouettes, as an orange ghost.
-      await sleep(400);
-      world.add(cubeGroup(hidden, { ghost: true, color: 0xf5a524 }).group);
-    }
-    ok ? run.hit() : run.miss();
-    P.message(ok
-      ? (same ? 'Exactly the hidden object.' : 'Your build casts all three silhouettes — a valid answer. The actual object is the orange ghost; the views could not tell them apart.')
-      : `${bad} cell${bad > 1 ? 's' : ''} disagree across the views — outlined red are missing, solid red are extra.`, ok ? 'ok' : 'bad');
-    if (run.over) run.showOver(newCase);
-    else P.post([
-      { label: 'Next ↵', primary: true, onClick: newCase },
-      ...(ok ? [] : [{ label: 'Fix it (practice)', onClick: () => { practice = true; commitB.textContent = 'Check ↵'; commitB.disabled = clearB.disabled = false; LB.enabled = true; P.clearPost(); P.message('Fix the build until it casts all three views. The miss stands.'); } },
-        { label: 'Show the object', onClick: () => { world.add(cubeGroup(hidden, { ghost: true, color: 0xf5a524 }).group); P.post([{ label: 'Next ↵', primary: true, onClick: newCase }]); } }]),
+  function fix() {
+    practice = true; phase = 'build';
+    evidenceNote.textContent = 'Last cast shown below · check again after editing.';
+    stageStatus.textContent = 'Practice · your first attempt is already counted';
+    commitB.textContent = 'Check shadows ↵';
+    P.clearPost(); P.message('Use the mismatches to adjust your build, then cast again.');
+    refresh(); log.push('retry', { sketch: 'shadows' });
+  }
+
+  function finishActions(ok: boolean) {
+    const next = () => { if (run.over) run.showOver(newCase); else newCase(); };
+    P.post([
+      { label: run.over ? 'See results ↵' : 'Next object ↵', primary: true, onClick: next },
+      ...(!ok ? [{ label: 'Fix it · practice', onClick: fix }] : []),
+      { label: 'Show one solution', onClick: () => {
+        scene.showObject(hidden); stageStatus.textContent = 'One valid solution is outlined in gold';
+        log.push('reveal', { sketch: 'shadows' });
+      } },
     ]);
   }
 
+  async function commit() {
+    if (!canEdit() || LB.cells.length !== n) return;
+    const token = generation, cells = LB.cells, wasPractice = practice;
+    phase = 'cast'; result = assess(cells, hidden, dims);
+    const verdict = result;
+    log.push('commit', { sketch: 'shadows', cells, practice, ms: performance.now() - presented, msSinceFirstInput: firstInput ? performance.now() - firstInput : null });
+    // Record before animation: reloading cannot erase a committed miss. A mode switch
+    // during the reveal cannot apply this result to the new run.
+    if (!wasPractice) {
+      log.push('result', { sketch: 'shadows', level: run.level, ok: verdict.ok, cells, badCells: verdict.badCells });
+      verdict.ok ? run.hit() : run.miss();
+      try { if (draftKey) localStorage.removeItem(draftKey); } catch { /* optional */ }
+    } else log.push('practice', { sketch: 'shadows', ok: verdict.ok, cells, badCells: verdict.badCells });
+    refresh(); P.clearPost(); P.message('');
+    evidenceNote.textContent = '03 / CAST · testing your prediction';
+    drawClues();
+    const revealed: View[] = [];
+    for (const view of VIEWS) {
+      stageStatus.textContent = `Casting the ${view} shadow…`;
+      clueEls.get(view)?.classList.add('casting');
+      await scene.cast(view, cells, target[view], reduced.matches);
+      if (token !== generation) return;
+      revealed.push(view); drawClues(revealed);
+    }
+    phase = 'result'; refresh();
+    scene.showProjection('front', cells, target.front);
+    clueEls.get('front')?.classList.add('inspecting');
+    evidenceNote.textContent = '✓ match · outline = missing · × = extra';
+    stageStatus.textContent = verdict.ok ? 'All three shadows match' : 'Your cast is ready to inspect';
+    const matches = VIEWS.filter((v) => verdict.diff[v].extra.size + verdict.diff[v].missing.size === 0).length;
+    P.message(verdict.ok
+      ? wasPractice ? 'Solved in practice. Your first attempt stays on the scorecard.'
+        : verdict.same ? 'You found it. All three shadows match.' : 'A different object. The same three shadows. That counts.'
+      : `${matches}/3 views match. ${verdict.badCells} shadow ${verdict.badCells === 1 ? 'cell needs' : 'cells need'} fixing.`, verdict.ok ? 'ok' : 'bad');
+    finishActions(verdict.ok);
+  }
+
   run.begin(newCase);
-  const onKey = (e: KeyboardEvent) => { if (e.key === 'Enter') { if (!commitB.disabled) commit(); else (panelEl.querySelector('#post:not([hidden]) button.primary') as HTMLButtonElement | null)?.click(); } };
+  const onKey = (e: KeyboardEvent) => {
+    if (helpOpen(stageEl) || document.body.hasAttribute('data-over') || e.altKey || e.repeat) return;
+    const el = e.target as HTMLElement;
+    if (el.matches('input, textarea, select, [contenteditable="true"]')) return;
+    if (e.key === 'Enter') {
+      // Enter on a focused button uses its native action, rather than also committing.
+      if (el.closest('button, a')) return;
+      e.preventDefault();
+      if (phase === 'build') void commit();
+      else if (phase === 'result') (panelEl.querySelector('#post button.primary') as HTMLButtonElement | null)?.click();
+    } else if (canEdit() && (e.key === 'Backspace' || (e.key.toLowerCase() === 'z' && (e.metaKey || e.ctrlKey)))) {
+      e.preventDefault(); LB.undo();
+    } else if (canEdit() && !e.metaKey && !e.ctrlKey && /^[1-4]$/.test(e.key)) {
+      e.preventDefault(); LB.activeLayer = Number(e.key) - 1;
+    }
+  };
   window.addEventListener('keydown', onKey);
-  return () => { window.removeEventListener('keydown', onKey); stage.dispose(); };
+  return () => { generation++; window.removeEventListener('keydown', onKey); scene.dispose(); evidence.remove(); frameEl.classList.remove('shadows-game'); };
 }
 
 export const shadows: SketchDef = {
   id: 'shadows', title: 'Shadows', status: 'playable', skill: '2D → 3D reconstruction', icon: '🔦',
-  tagline: 'Top, front and side silhouettes of a hidden object. Build what casts them — you see your build in 3D, but its silhouettes stay hidden until you commit.',
-  about: 'Three silhouettes fix an object only partly; rebuilding one that casts them is 2D→3D reconstruction. You never see your own build\'s silhouettes until you commit — with them visible this would collapse into pure cell logic (Picross 3D) — and the cube count is fixed so the biggest-possible-object trick fails.',
-  controls: 'Toggle cells layer by layer (bottom layer first), then Commit (Enter).',
+  tagline: 'Read the shadows. Build the object. Commit to find out.',
+  about: 'Build an object using exactly the given number of cubes. Your top, front and right shadows must match the three clues. There can be more than one valid answer; every matching build counts. Your shadows stay hidden until you commit, so you have to picture the projections yourself. A miss reveals missing and extra shadow cells; fixing it in practice never changes your first-attempt score.',
+  controls: 'Tap gold squares in 3D or use the layer grid to place and remove cubes. Layers run bottom to top; the grid runs back to front. Keys 1–4 select a layer, Backspace or Ctrl/Cmd+Z undoes, Enter casts. View arrows let you inspect the build. Daily builds are saved as you go.',
   mount,
 };

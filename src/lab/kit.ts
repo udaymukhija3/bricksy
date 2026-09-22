@@ -97,6 +97,7 @@ export class SketchStage {
   private w = 1;
   private h = 1;
   private ro: ResizeObserver;
+  private resizeFrame = 0;
   private container: HTMLElement;
 
   constructor(container: HTMLElement, opts: StageOpts = {}) {
@@ -120,7 +121,11 @@ export class SketchStage {
       this.scene.add(ground);
     }
     this.gizmo = opts.gizmo ? makeGizmo() : null;
-    this.ro = new ResizeObserver(() => this.resize());
+    // Resizing the canvas can change a grid's intrinsic size. Defer that write
+    // out of the observer delivery cycle to avoid resize loops on orientation changes.
+    this.ro = new ResizeObserver(() => {
+      if (!this.resizeFrame) this.resizeFrame = requestAnimationFrame(() => { this.resizeFrame = 0; this.resize(); });
+    });
     this.ro.observe(container);
     this.resize();
     this.renderer.setAnimationLoop(() => this.frame());
@@ -198,6 +203,7 @@ export class SketchStage {
   dispose() {
     this.renderer.setAnimationLoop(null);
     this.ro.disconnect();
+    cancelAnimationFrame(this.resizeFrame);
     this.renderer.dispose();
     this.canvas.remove();
   }
@@ -396,40 +402,76 @@ export function turnQueue(container: HTMLElement, opts: { commitLabel?: string; 
   return api;
 }
 
-/** Layer-by-layer voxel editor: one W×D grid per layer, bottom layer first. */
-export function layerBuilder(container: HTMLElement, dims: { w: number; h: number; d: number }, opts: { onChange?: (cells: Cell[]) => void; max?: number } = {}) {
+/** Layer-by-layer voxel editor. Compact mode shows one accessible layer at a time. */
+export function layerBuilder(container: HTMLElement, dims: { w: number; h: number; d: number }, opts: {
+  onChange?: (cells: Cell[]) => void; max?: number; compact?: boolean; onLayerChange?: (layer: number) => void;
+} = {}) {
   const on = new Set<string>();
-  const wrap = h('div.layers');
-  const cellsEl = new Map<string, HTMLElement>();
-  let enabled = true;
+  const wrap = h('div.layers' + (opts.compact ? '.compact-layers' : ''));
+  const cellsEl = new Map<string, HTMLButtonElement>();
+  const layers: HTMLElement[] = [], tabs: HTMLButtonElement[] = [];
+  const history: string[][] = [];
+  let enabled = true, activeLayer = 0;
+  const remember = () => { history.push([...on]); if (history.length > 200) history.shift(); };
+  const toggle = (cell: Cell) => {
+    if (!enabled || cell.some((v, i) => !Number.isInteger(v) || v < 0 || v >= [dims.w, dims.h, dims.d][i])) return;
+    const k = cellKey(cell);
+    if (!on.has(k) && opts.max && on.size >= opts.max) { toast(`Only ${opts.max} cubes — remove one first`); return; }
+    remember();
+    on.has(k) ? on.delete(k) : on.add(k);
+    paint();
+    opts.onChange?.(api.cells);
+  };
+  if (opts.compact) {
+    const tabRow = h('div.layer-tabs', { role: 'group', 'aria-label': 'Build layer' });
+    for (let y = 0; y < dims.h; y++) {
+      const b = h('button', { 'aria-label': `Layer ${y + 1}${y === 0 ? ', bottom' : y === dims.h - 1 ? ', top' : ''}`,
+        onclick: () => { api.activeLayer = y; } }, String(y + 1)) as HTMLButtonElement;
+      tabs.push(b); tabRow.append(b);
+    }
+    wrap.append(h('div.layer-heading', {}, h('span', {}, 'Layer'), tabRow, h('span.layer-order', {}, 'bottom → top')));
+  }
   for (let y = 0; y < dims.h; y++) {
-    const grid = h('div.grid', { style: { gridTemplateColumns: `repeat(${dims.w}, 1fr)` } });
+    const grid = h('div.grid', { role: 'group', 'aria-label': `Layer ${y + 1} cells`, style: { gridTemplateColumns: `repeat(${dims.w}, 1fr)` } });
     for (let z = 0; z < dims.d; z++) for (let x = 0; x < dims.w; x++) {
       const k = cellKey([x, y, z]);
       const c = h('button.cell', {
-        onclick: () => {
-          if (!enabled) return;
-          if (on.has(k)) on.delete(k);
-          else if (opts.max && on.size >= opts.max) { toast(`Only ${opts.max} cubes`); return; }
-          else on.add(k);
-          paint();
-          opts.onChange?.(api.cells);
-        },
-      });
+        'aria-label': `Layer ${y + 1}, column ${x + 1}, depth ${z + 1}`, 'data-cell': k,
+        onclick: () => toggle([x, y, z]),
+      }) as HTMLButtonElement;
       cellsEl.set(k, c);
       grid.append(c);
     }
-    wrap.append(h('div.layer', {}, h('div.layer-label', {}, `layer ${y + 1}`), grid));
+    const layer = h('div.layer', {}, h('div.layer-label', {}, opts.compact ? 'BACK' : `layer ${y + 1}`), grid,
+      opts.compact ? h('div.layer-front', {}, 'FRONT') : null);
+    layers.push(layer); wrap.append(layer);
   }
   container.append(wrap);
-  const paint = () => { for (const [k, el] of cellsEl) el.classList.toggle('on', on.has(k)); };
+  const paint = () => {
+    for (const [k, el] of cellsEl) { el.classList.toggle('on', on.has(k)); el.setAttribute('aria-pressed', String(on.has(k))); }
+    if (opts.compact) layers.forEach((el, y) => { el.hidden = y !== activeLayer; });
+    tabs.forEach((el, y) => { el.setAttribute('aria-pressed', String(y === activeLayer)); });
+  };
   const api = {
     get cells(): Cell[] { return [...on].map((k) => k.split(',').map(Number) as unknown as Cell); },
-    set(cells: Cell[]) { on.clear(); for (const c of cells) on.add(cellKey(c)); paint(); },
-    set enabled(v: boolean) { enabled = v; wrap.classList.toggle('disabled', !v); },
+    set(cells: Cell[]) { on.clear(); history.length = 0; for (const c of cells) on.add(cellKey(c)); paint(); },
+    toggle,
+    undo() { if (!enabled || !history.length) return; on.clear(); for (const k of history.pop()!) on.add(k); paint(); opts.onChange?.(api.cells); },
+    clear() { if (!enabled || !on.size) return; remember(); on.clear(); paint(); opts.onChange?.(api.cells); },
+    get canUndo() { return history.length > 0; },
+    set activeLayer(y: number) {
+      if (!Number.isInteger(y) || y < 0 || y >= dims.h || y === activeLayer) return;
+      activeLayer = y; paint(); opts.onLayerChange?.(y);
+    },
+    get activeLayer() { return activeLayer; },
+    set enabled(v: boolean) {
+      enabled = v; wrap.classList.toggle('disabled', !v);
+      for (const b of [...cellsEl.values(), ...tabs]) b.disabled = !v;
+    },
     get enabled() { return enabled; },
     el: wrap,
   };
+  paint();
   return api;
 }
 

@@ -1,8 +1,11 @@
 # Handoff — Projection Detective
 
-> **Shipped 2026-09-18 as Shadows** — `/shadows/`, on the hub, with the daily/endless run loop. Code: `src/lab/shadows.ts`. What shipped: one commit per round; a miss shows the disagreeing cells and the actual object as an orange ghost; difficulty by level: 5→8 cubes in 3³, then 7→10 in 4×3×4. The sections below are the original brief; the open questions still stand.
+> **Updated 2026-09-21** — Shadows at `/shadows/` now has a direct 3D workbench, a compact layer editor, undo, saved daily builds, and a sequential projection reveal. The existing daily seeds, cube budgets, and difficulty curve are unchanged. Public GitHub Pages deployment remains blocked by the account billing lock (workflow run 35440962492).
 
-Branch: `projection`. Entry: `/shadows/` (`src/lab/shadows.ts`).
+Release branch: `codex/shadows-workbench`, based on `codex/tightfit-moving-day`.
+Entry: `/shadows/` (`src/lab/shadows.ts`). The combined release targets the existing
+owner-private Site at `https://bricksy-tight-fit.udiboy98.chatgpt.site/shadows/`.
+The original Tight Fit checkout and its uncommitted work are preserved.
 
 ## The spatial concept
 
@@ -33,19 +36,44 @@ Any redesign that violates either rule is a different (and weaker) game.
 - Views as 2D key sets: top `(x, z)`, front `(x, H-1-y)`, right `(D-1-z, H-1-y)`
   — third-angle layout so the right view's left edge is the front face.
 - Hidden objects: random polycubes fitting the box, not flat sheets.
-- Input: the layer builder (`kit.ts`) — one W×D grid per layer, live 3D view.
-- Commit: your projections rendered next to the targets; solid red = extra,
-  outlined red = missing. Success = all three match and count = N; if the
-  build differs from the hidden object but is consistent, the hidden object is
-  shown as an orange ghost with the message that the views could not tell
-  them apart.
+- Input: tap a gold square or an existing cube on the selected 3D layer;
+  alternatively use the shared layer builder (`kit.ts`) in compact mode.
+  Other layers turn translucent. Camera arrows keep views oblique. The
+  accessible grid uses 44px phone targets, named cells and pressed states.
+  Keys 1–4 change layer; Backspace / Ctrl+Z / Cmd+Z undo. Clear is undoable.
+- Daily drafts save cells and the selected layer per puzzle. Invalid or stale
+  drafts cannot change scoring. A commit records its result before animation,
+  so reloading or changing mode during a reveal cannot erase or misapply it.
+- Commit: top, front and right projections appear in sequence, with parallel
+  rays linking cubes to projection planes. Clue cards show matching cells,
+  dashed missing outlines and crossed extra cells. They remain unchanged
+  while editing in practice. There is no ground-shadow leak before commit.
+- Any build with the right cube count and all three matching projections wins.
+  A different valid object is explicitly acknowledged. *Show one solution*
+  outlines the original in gold; *Fix it · practice* leaves the score intact,
+  including on the final daily round. The result card waits for *See results*.
+- Model: `shadows-model.ts`; rendering: `shadows-scene.ts`; loop/UI:
+  `shadows.ts`; scoped layout: `src/shadows.css`. Reduced-motion preferences
+  skip the long fades. Scene-owned GPU resources are released on edits.
+
+## Verification (2026-09-21)
+
+- `npm test`: projection conventions, valid alternative builds, extra-cube
+  rejection, corrupt drafts, missing/extra feedback, and 400 deterministic
+  solvable cases, plus the existing all-game generator sweep.
+- Browser: valid alternative accepted; ten-cube solution accepted; direct
+  placement, count limit, clear/undo, daily draft reload, failed build →
+  successful practice with unchanged score, reload and mode switch during
+  reveal, six-round daily completion and reload lock, final-round practice.
+- Phone portrait and landscape checked. Orientation testing uncovered a
+  ResizeObserver delivery loop: shared `SketchStage` now schedules resize
+  writes on the next animation frame instead of inside the observer callback.
 
 ## Open questions
 
-1. **The input is the problem.** Layer grids work but feel like a spreadsheet.
-   Options: click faces in the 3D view to add/remove cubes (raycast on cube
-   faces, add on the hit face's normal); a "column height" mode for the easy
-   levels; a lattice of ghost cells to click. Keep rule 1 whatever the input.
+1. **Input discovery.** The direct layer workbench is implemented. Observe
+   whether new players understand switching layers without opening help;
+   consider a short guided first build if they do not.
 2. **Mastermind feedback vs. full disclosure.** Today a miss shows exactly
    which silhouette cells are wrong. Coarser feedback ("2 cells wrong in the
    top view") makes it more of a deduction game and slows the loop. Try both.

@@ -15,7 +15,7 @@ with controls, *why this game* and the player's learning curve · phone layout �
 | 🧩 Assemble | ✓ | 2→4 parts, scramble 1→3 | *Show solution* fly-in | full round hit, pick cycling, grid anchor on a phone | anchors can be set by tapping a layer grid or the ghost |
 | 🔪 Cut | ✓ (case picker pure since today) | solids/cuts to L6, six options at L8 | cuts the solid, marks the outline | L14 loads | plateau after L8 |
 | 📐 Fold | ✓ | 1-4-1 nets → all 11; two faces at L6 | folds, tumbles, marks faces | two-face round played | nothing beyond two faces |
-| 🔦 Shadows | ✓ | 5→13 cubes, 3³ → 4³ | diff grids; *Fix it (practice)* until it casts right; *Show the object* | miss → fix → fixed | — |
+| 🔦 Shadows | ✓ · 3D workbench updated Sep 21 | 5→13 cubes, 3³ → 4³; daily drafts resume | sequential projection reveal; missing/extra cells; practice; optional solution | alternate answer, ten-cube solution, miss → fix, reload/mode switch during reveal, full daily + lock, phone rotation | observe first-time layer discovery |
 | 🔢 Count | ✓ | 3×3 → 6×6, heights 3→4 | 540° reveal, hidden in orange | L9 loads | plateau after L14 |
 | ⚡ Flash | ✓ | 4→8 cubes, 3 → 1.2 s, turned view | ghost overlay; your extra cubes turn red | L0 played; ready gate → look → mode switch (phone) | — |
 | 🎲 Tilt | ✓ | 4→6 rooms, 3→6 loose; two sockets from L10 | cubes fall, sockets pulse, verdict names both | L10 two-socket round | — |

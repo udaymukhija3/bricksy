@@ -6,6 +6,7 @@ import { Log } from './log.ts';
 let shown = false;
 function report(kind: string, err: unknown) {
   const message = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+  if (import.meta.env.DEV) console.error(`[bricksy:${kind}]`, message);
   try { new Log().push('error', { kind, message, stack: err instanceof Error ? err.stack?.slice(0, 2000) : undefined, page: location.pathname }); } catch { /* the log itself may be what broke */ }
   if (shown) return;
   shown = true;

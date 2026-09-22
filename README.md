@@ -124,6 +124,14 @@ this without mental rotation?"*:
 
 ## The other games
 
+**Shadows workbench (2026-09-21):** tap directly in the 3D volume or use a
+single-layer grid; change layers, undo, and resume an unfinished daily build.
+Committing casts the top, front and right shadows in sequence, with missing
+and extra cells marked on the clues. Every valid reconstruction counts,
+including alternatives to the hidden object. Practice fixes leave the first
+attempt unchanged. The pure projection/scoring model and 400 generated cases
+are checked by `npm test`.
+
 One game per idea from the brainstorm, fifteen in all. Every game keeps the
 rule; the *skill* line is the cognitive operation the mechanic is meant to
 require, and the design test for each was *"could someone get good at this
