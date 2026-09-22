@@ -103,6 +103,13 @@ export class PackStage {
   /** Item and marker colours for the skinned games. */
   setItemColor(color: number, marker?: number) { this.mats.base.color.set(color); if (marker != null) this.mats.marker.color.set(marker); }
 
+  /** Optional visual dressing; all collision and animation still use the exact packing model. */
+  dress(fn: (scene: THREE.Scene, piece: THREE.Group, center: THREE.Vector3, puzzle: PackPuzzle) => void, radiusPadding = 0) {
+    if (this.puzzle) fn(this.scene, this.piece, this.c0, this.puzzle);
+    this.radius += radiusPadding;
+    this.reframe();
+  }
+
   setPuzzle(p: PackPuzzle) {
     this.puzzle = p;
     const { mold } = p;

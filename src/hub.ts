@@ -19,9 +19,9 @@ function status(g: SketchDef) {
   if (g.id === 'tightfit') {
     let stars = 0;
     try { stars = Object.values(JSON.parse(localStorage.getItem('bricksy.tf.stars') ?? '{}') as Record<string, number>).reduce((a, b) => a + b, 0); } catch { /* none */ }
-    const saga = stars ? ` · saga ★ ${stars}/30` : '';
+    const saga = stars ? ` · campaign ★ ${stars}/30` : '';
     if (rec?.done) return h('span.today.done', {}, `today's job ${rec.results.map((r) => (r ? '🟩' : '🟥')).join('')}${saga}`);
-    return h('span.today', {}, `today's job #${dayNumber()} →${saga}`);
+    return h('span.today', {}, stars ? `today's job #${dayNumber()} →${saga}` : 'Start your first moving day →');
   }
   const st = statsOf(g.id);
   const best = Number(localStorage.getItem(`bricksy.${g.id}.best`)) || 0;
@@ -57,7 +57,11 @@ const week = h('div.week', {}, ...Array.from({ length: 7 }, (_, i) => {
 const bestStreak = Math.max(0, ...games.map((g) => statsOf(g.id).dayStreak));
 // The one call to action: the next daily you haven't played (in progress first), or nothing left today.
 const nextUp = games.find((g) => { const r = dailyRecord(g.id); return r && !r.done; }) ?? games.find((g) => !dailyRecord(g.id)?.done);
-const cta = nextUp
+let hasCampaignStars = false;
+try { hasCampaignStars = Object.values(JSON.parse(localStorage.getItem('bricksy.tf.stars') ?? '{}') as Record<string, number>).some((n) => n > 0); } catch { /* new player */ }
+const cta = !hasCampaignStars
+  ? h('a.button.primary.cta', { href: 'tightfit/' }, 'Start Tight Fit’s first day →')
+  : nextUp
   ? h('a.button.primary.cta', { href: nextUp.href ?? `${nextUp.id}/` }, `${done ? 'Next' : 'Play'} today's daily: ${nextUp.icon ?? ''} ${nextUp.title} →`)
   : h('span.stat.done', {}, `All ${games.length} dailies done today ✓ — endless is open on every card`);
 app.replaceChildren(

@@ -1,6 +1,6 @@
 // Tight Fit stages. Each mounts into the shared stage/panel, runs to a result, and cleans up.
 import * as THREE from 'three';
-import { applyMoves, normalize, rotateCell, moveLabel, type Cell, type Move } from '../polycube.ts';
+import { applyMoves, normalize, rotateCell, moveLabel, MOVES, type Cell, type Move } from '../polycube.ts';
 import { PackStage } from '../pack-scene.ts';
 import {
   SketchStage, cubeGroup, voxelMesh, turnQueue, panel, h, sleep, pulseMats, easeIn, easeOut, COLOR_OK, COLOR_BAD,
@@ -9,6 +9,7 @@ import {
 import { makeLoad, land, makeDoorway, passes, makeCorner, type Body } from './model.ts';
 import { PLATE, placeSil } from '../smuggle-model.ts';
 import { Sfx } from '../sfx.ts';
+import { dressFurniture, dressVan, dressDoor, SKY } from './scenery.ts';
 
 export interface StageCtx {
   stageEl: HTMLElement;
@@ -23,6 +24,7 @@ export interface StageCtx {
   sfx: Sfx;
   /** Called after each attempt so the job HUD can update stars. */
   onAttempt?: (ok: boolean, attempt: number) => void;
+  guided?: boolean;
 }
 
 export interface StageResult { firstTry: boolean; attempts: number; failed: boolean; item: Cell[]; cleanup: () => void }
@@ -54,6 +56,7 @@ export async function loadStage(ctx: StageCtx): Promise<StageResult> {
   stage.setItemColor(ctx.itemColor, markerFor(ctx.itemColor));
   const puzzle = makeLoad(ctx.item, ctx.distance, ctx.rng);
   stage.setPuzzle(puzzle);
+  stage.dress((scene, group, center, p) => dressVan(scene, group, center, p, ctx.itemName), 1);
   dev({ puzzle });
   ctx.panelEl.replaceChildren();
   ctx.hintEl.textContent = `Load the ${ctx.itemName} into the van — it has to drop into the slot. ${puzzle.distance} turn${puzzle.distance > 1 ? 's' : ''}.`;
@@ -61,8 +64,24 @@ export async function loadStage(ctx: StageCtx): Promise<StageResult> {
   let attempts = 0;
   let resolveDone!: (r: StageResult) => void;
   const done = new Promise<StageResult>((r) => { resolveDone = r; });
-  const Q = turnQueue(ctx.panelEl, { commitLabel: 'Load it ↵', onHover: (a, d) => stage.highlightAxis(a, d), onCommit: commit });
+  const guide = ctx.guided ? h('div.tf-coach', {}, h('b', {}, 'Your first turn'), h('p', {}, 'Choose a turn, then Load it. The lamp only moves when you commit. Watch the curved arrow to see which way it will turn.')) : null;
+  if (guide) ctx.panelEl.append(guide);
+  const Q = turnQueue(ctx.panelEl, { commitLabel: 'Load it ↵', availableMoves: ctx.guided ? MOVES.filter((m) => m.axis === puzzle.solution[0].axis) : undefined, max: ctx.guided ? 1 : 6, onHover: (a, d) => stage.highlightAxis(a, d), onCommit: commit });
   const P = panel(ctx.panelEl);
+  if (ctx.guided) {
+    stage.highlightAxis(puzzle.solution[0].axis, puzzle.solution[0].dir);
+    const demo = h('button.tf-demo', { onclick: async () => {
+      if (!Q.enabled) return;
+      Q.enabled = false; (demo as HTMLButtonElement).disabled = true;
+      P.message('Watch the lamp turn. This demonstration does not use a try.');
+      for (const m of puzzle.solution) await stage.animateMove(m, 900);
+      await sleep(650); await stage.animateLift();
+      Q.reset(); Q.enabled = true; (demo as HTMLButtonElement).disabled = false;
+      P.message(`Your turn: choose ${moveLabel(puzzle.solution[0])}, then Load it.`);
+    } }, 'Show me one turn');
+    guide!.append(demo);
+    Q.onChange = (moves) => { guide!.querySelector('p')!.textContent = moves.length ? 'That is your plan. Choose Load it to see what happens.' : 'Choose a turn, then Load it. The lamp only moves when you commit.'; };
+  }
 
   async function commit(moves: Move[]) {
     Q.enabled = false;
@@ -120,7 +139,9 @@ export async function doorwayStage(ctx: StageCtx): Promise<StageResult> {
   // The house wall: warm plaster with the doorway cut through it.
   const wall = voxelMesh(door.wall.plate, { color: 0x9a8b78, outline: 0x3a3028 });
   world.add(wall.group);
+  dressDoor(stage.scene);
   const piece = cubeGroup(cells, { center: true, marker: 0, color: ctx.itemColor });
+  dressFurniture(piece.group, cells, piece.c0, ctx.itemName);
   piece.mats.marker.color.set(markerFor(ctx.itemColor));
   dev({ door, passes, rotateCell, normalize, get cells() { return cells; } });
   const REST = 3.5;
@@ -200,6 +221,7 @@ export async function doorwayStage(ctx: StageCtx): Promise<StageResult> {
 export async function cornerStage(ctx: StageCtx): Promise<StageResult> {
   ctx.stageEl.replaceChildren();
   const stage = new SketchStage(ctx.stageEl, { gizmo: true, ground: null });
+  stage.scene.background = new THREE.Color(SKY);
   const corner = makeCorner(ctx.item, ctx.others ?? [], ctx.rng, `the ${ctx.itemName}`, ctx.itemColor);
   dev({ corner });
   const n = corner.n, c = (n - 1) / 2;
@@ -210,8 +232,9 @@ export async function cornerStage(ctx: StageCtx): Promise<StageResult> {
   grid.position.y = -c - 0.5;
   world.add(grid);
   world.add(voxelMesh(corner.fixed.map(([x, y, z]) => [x - c, y - c, z - c] as Cell), { color: 0x5b6478 }).group);
-  const bodies = corner.bodies.map((b) => {
+  const bodies = corner.bodies.map((b, i) => {
     const g = cubeGroup(b.cells.map(([x, y, z]) => [x - c, y - c, z - c] as Cell), { color: b.color });
+    if (i === 0) dressFurniture(g.group, b.cells.map(([x, y, z]) => [x - c, y - c, z - c] as Cell), new THREE.Vector3(), ctx.itemName);
     world.add(g.group);
     return g;
   });

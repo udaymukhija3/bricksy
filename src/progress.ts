@@ -38,7 +38,7 @@ export function progress(id: string): Progress {
   }
   let clock = 0; // when the current question was asked: the present, or the previous result when one present holds several rounds (Smuggle's walls)
   for (const e of events) {
-    const mine = id === 'pack' ? !('sketch' in e) && 'puzzleId' in e : e.sketch === id || e.sketch === LEGACY[id];
+    const mine = id === 'pack' ? !('sketch' in e) && 'puzzleId' in e : e.sketch === id || (LEGACY[id] !== undefined && e.sketch === LEGACY[id]);
     if (!mine) continue;
     if (e.type === 'present') { present = e; clock = e.t; continue; }
     const isResult = e.type === 'result' || (e.type === 'drop' && e.attempt === 1);
