@@ -1,0 +1,131 @@
+/* Shadows' workbench. Scoped so the other experiments keep their own layout. */
+.sk.shadows-game { --shadow-gold: #f5c16c; --shadow-green: #72d6ba; --shadow-red: #f28b82; display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(285px, 1fr); gap: 14px; }
+.shadows-game > header, .shadows-game > #instructions, .shadows-game > footer, .shadow-evidence { grid-column: 1 / -1; }
+.shadows-game > header { padding: 5px 0; }
+.shadows-game #instructions { max-width: 740px; line-height: 1.6; }
+.shadows-game #hint { color: #b8bdcd; }
+.shadow-evidence { background: #191c24; border: 1px solid #323743; border-radius: 14px; padding: 16px 20px; }
+.shadow-section-label { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+.shadow-section-label b, .shadow-stage-title b, .shadow-eyebrow { font-size: 10px; letter-spacing: 0.13em; color: var(--shadow-gold); }
+.shadow-section-label > span { color: #a2a9bb; font-size: 12px; }
+.shadow-clues { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.shadow-clue { position: relative; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px 12px; min-width: 0; border-radius: 8px; padding: 10px 14px; background: #14171e; border: 1px solid #303543; transition: border-color 0.2s; }
+.shadow-clue-title { align-self: start; display: flex; flex-direction: column; gap: 12px; font-size: 14px; }
+.shadow-clue-title span { font-size: 23px; font-weight: 300; color: #626b7e; }
+.shadow-clue svg { width: 80px; height: 80px; grid-column: 2; grid-row: 1 / 3; }
+.shadow-clue svg rect { stroke-width: 1; }
+.shadow-clue svg .empty { fill: #1b1f29; stroke: #2c3240; }
+.shadow-clue svg .target { fill: var(--shadow-gold); stroke: #ffe1af; }
+.shadow-clue svg .match { fill: var(--shadow-green); stroke: #b5f1df; }
+.shadow-clue svg .missing { fill: #281f26; stroke: var(--shadow-red); stroke-width: 2; stroke-dasharray: 3 2; }
+.shadow-clue svg .extra { fill: var(--shadow-red); stroke: var(--shadow-red); }
+.shadow-clue svg .extra-cross { fill: none; stroke: #481e23; stroke-width: 2; stroke-linecap: round; }
+.shadow-clue-status { color: #929db2; font-size: 10px; white-space: nowrap; }
+.shadow-clue.matched .shadow-clue-status { color: var(--shadow-green); }
+.shadow-clue.has-errors .shadow-clue-status { color: var(--shadow-red); }
+.shadow-clue.casting { border-color: var(--shadow-gold); box-shadow: 0 0 20px #f5c16c16; }
+.shadow-clue.inspecting { border-color: #8f9db5; }
+.shadow-inspect { position: absolute; inset: 0; border: 0; border-radius: 8px; background: transparent; color: transparent; font-size: 0; }
+.shadow-inspect:hover:not(:disabled) { background: #ffffff06; }
+.shadows-game > .sk-stage { grid-column: 1; height: 420px; min-height: 0; border-color: #343947; background: radial-gradient(ellipse at 50% 55%, #202632, #14161c); }
+.shadow-stage-title { position: absolute; top: 18px; left: 18px; right: 18px; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; pointer-events: none; }
+.shadow-stage-title > span { color: #9ea9bf; font-size: 11px; text-align: right; }
+.shadow-scene-tools { position: absolute; left: 16px; right: 16px; bottom: 12px; display: flex; justify-content: space-between; align-items: center; gap: 12px; pointer-events: none; }
+.shadow-scene-tools > span { font-size: 11px; color: #a2a9bb; }
+.shadow-scene-tools > div { display: flex; gap: 6px; pointer-events: auto; }
+.shadow-scene-tools button { width: 40px; height: 40px; padding: 0; font-size: 22px; background: #202632; }
+.shadow-edge { position: absolute; font-size: 9px; letter-spacing: 0.12em; color: #a2a9bb; transform: translate(-50%, -50%); pointer-events: none; }
+.shadows-game > #panel { grid-column: 2; min-width: 0; gap: 12px; align-content: start; padding: 20px; background: #1b1f28; border: 1px solid #343947; border-radius: 12px; }
+.shadow-count { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+.shadow-count h2 { margin: 5px 0 0; font-size: 17px; letter-spacing: -0.03em; font-weight: 600; }
+.shadow-count > div:last-child { text-align: right; flex-shrink: 0; }
+.shadow-count b { display: block; font-size: 19px; font-variant-numeric: tabular-nums; color: #b8c8e7; }
+.shadow-count b.complete { color: var(--shadow-green); }
+.shadow-count > div > span:last-child:not(.shadow-eyebrow) { color: #929db2; font-size: 10px; }
+.layers.compact-layers { display: grid; grid-template-columns: 1fr; gap: 9px; }
+.layer-heading { display: flex; align-items: center; gap: 10px; font-size: 12px; color: #bdc5d7; }
+.layer-tabs { display: flex; gap: 4px; }
+.layer-tabs button { width: 36px; height: 36px; min-height: 36px; padding: 0; background: #14171e; border-color: #343947; }
+.layer-tabs button[aria-pressed='true'] { color: #191814; background: var(--shadow-gold); border-color: var(--shadow-gold); font-weight: 700; }
+.layer-order { margin-left: auto; color: #929db2; font-size: 10px; }
+.compact-layers .layer { justify-self: center; }
+.compact-layers .layer-label, .layer-front { text-align: center; color: #9aa5bb; font-size: 8px; letter-spacing: 0.16em; margin: 0 0 4px; }
+.layer-front { margin: 4px 0 0; }
+.compact-layers .grid { gap: 4px; }
+.compact-layers .grid .cell { height: 40px; width: 40px; min-height: 40px; border-radius: 6px; border-color: #404a60; background: #242c3b; }
+.compact-layers .grid .cell:hover:not(:disabled) { border-color: var(--shadow-gold); background: #3b4050; }
+.compact-layers .grid .cell.on { background: #86a5e8; border-color: #d1dfff; box-shadow: inset 0 -4px 0 #536fa54d; }
+.compact-layers.disabled { opacity: 0.7; }
+.shadow-edit-help { color: #a2a9bb; font-size: 11px; line-height: 1.5; text-align: center; margin: 0; }
+.shadow-controls { display: grid; grid-template-columns: auto 1fr; gap: 8px; }
+.shadow-edit-actions { display: flex; gap: 5px; }
+.shadow-controls button { padding: 8px 9px; font-size: 12px; min-height: 40px; }
+.shadow-controls .primary { background: var(--shadow-gold); white-space: nowrap; }
+.shadows-game #message { font-size: 13px; line-height: 1.5; min-height: 0; }
+.shadows-game #message:empty { display: none; }
+.shadows-game #message.ok { color: var(--shadow-green); }
+.shadows-game #message.bad { color: var(--shadow-red); }
+.shadows-game #post { gap: 8px; }
+.shadows-game #post button { font-size: 12px; flex: 1 1 auto; min-height: 42px; }
+.shadows-game #post button.primary { flex: 1 1 100%; background: var(--shadow-gold); }
+.shadows-game button:focus-visible { outline: 2px solid #d6e3ff; outline-offset: 3px; }
+.shadows-game footer { padding: 3px 0; }
+@media (max-width: 760px) {
+  .sk.shadows-game { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .shadow-evidence { padding: 12px; }
+  .shadow-section-label { margin-bottom: 10px; gap: 6px; }
+  .shadow-section-label > span { font-size: 10px; }
+  .shadow-clues { gap: 8px; }
+  .shadow-clue { grid-template-columns: 1fr; justify-items: center; gap: 6px; padding: 8px 3px; }
+  .shadow-clue-title { flex-direction: row; justify-content: space-between; width: 100%; padding: 0 8px; font-size: 12px; }
+  .shadow-clue-title span { font-size: 12px; }
+  .shadow-clue svg { grid-column: 1; grid-row: 2; width: 64px; height: 64px; }
+  .shadow-clue-status { font-size: 9px; }
+  .shadows-game > .sk-stage { grid-column: 1; height: 260px; }
+  .shadow-stage-title { top: 12px; left: 12px; right: 12px; }
+  .shadow-stage-title > span { font-size: 10px; }
+  .shadow-scene-tools { left: 12px; right: 12px; bottom: 8px; }
+  .shadow-scene-tools > span { font-size: 10px; }
+  .shadows-game > #panel { grid-column: 1; padding: 12px; grid-template-columns: minmax(188px, 1fr) minmax(0, 1fr); align-items: start; gap: 10px 12px; }
+  .shadow-count { grid-column: 1 / -1; }
+  .shadow-builder { grid-column: 1; grid-row: 2 / 5; }
+  .layer-heading { gap: 6px; flex-wrap: wrap; }
+  .layer-heading > span:first-child { display: none; }
+  .layer-order { display: none; }
+  .layer-tabs { gap: 4px; }
+  .layer-tabs button { width: 44px; height: 44px; }
+  .compact-layers .layer { justify-self: start; }
+  .compact-layers .grid .cell { width: 44px; height: 44px; min-height: 44px; }
+  .shadow-edit-help { grid-column: 2; text-align: left; font-size: 11px; padding-top: 5px; }
+  .shadow-controls { grid-column: 2; display: flex; flex-direction: column; align-self: end; }
+  .shadow-edit-actions button { flex: 1; min-width: 0; padding: 8px 4px; }
+  .shadows-game #message, .shadows-game #post { grid-column: 2; font-size: 11px; }
+  .shadows-game #post { flex-direction: column; }
+  .shadows-game #post button { flex: auto; font-size: 11px; padding: 8px 4px; }
+  .shadow-controls .primary { white-space: normal; }
+}
+@media (max-width: 360px) {
+  .shadows-game > #panel { grid-template-columns: 1fr; }
+  .shadow-builder { grid-column: 1; grid-row: auto; }
+  .compact-layers .layer, .layer-heading { justify-self: center; }
+  .shadow-edit-help, .shadow-controls, .shadows-game #message, .shadows-game #post { grid-column: 1; }
+  .shadow-edit-help { text-align: center; }
+  .shadow-controls { display: grid; grid-template-columns: auto 1fr; }
+}
+@media (pointer: coarse) {
+  .layer-tabs button, .shadow-scene-tools button { min-height: 44px; }
+}
+@media (orientation: landscape) and (max-height: 540px) {
+  .sk.layout.shadows-game { height: auto; min-height: 100dvh; grid-template-columns: minmax(0, 1fr) minmax(280px, 38%); grid-template-rows: auto auto auto auto; padding: 8px 12px; }
+  .shadow-clues { gap: 8px; }
+  .shadow-clue { grid-template-columns: 1fr; justify-items: center; gap: 6px; padding: 8px 3px; }
+  .shadow-clue-title { flex-direction: row; justify-content: space-between; width: 100%; padding: 0 8px; font-size: 12px; }
+  .shadow-clue-title span { font-size: 12px; }
+  .shadow-clue svg { grid-column: 1; grid-row: 2; width: 64px; height: 64px; }
+  .sk.shadows-game > .shadow-evidence { grid-column: 1; grid-row: 2; }
+  .sk.shadows-game > .sk-stage { grid-column: 1; grid-row: 3; height: 270px; }
+  .sk.shadows-game > #panel { grid-column: 2; grid-row: 2 / 4; display: grid; grid-template-columns: 1fr; overflow: visible; }
+  .shadow-builder, .shadow-edit-help, .shadow-controls, .shadows-game #message, .shadows-game #post { grid-column: 1; grid-row: auto; }
+  .sk.shadows-game > footer { grid-row: 4; }
+}
+@media (prefers-reduced-motion: reduce) { .shadow-clue { transition: none; } }
