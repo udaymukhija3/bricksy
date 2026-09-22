@@ -76,7 +76,7 @@ export async function loadStage(ctx: StageCtx): Promise<StageResult> {
       P.message('Watch the lamp turn. This demonstration does not use a try.');
       for (const m of puzzle.solution) await stage.animateMove(m, 900);
       await sleep(650); await stage.animateLift();
-      Q.reset(); Q.enabled = true; (demo as HTMLButtonElement).disabled = false;
+      Q.reset(); Q.onChange?.([]); Q.enabled = true; (demo as HTMLButtonElement).disabled = false;
       P.message(`Your turn: choose ${moveLabel(puzzle.solution[0])}, then Load it.`);
     } }, 'Show me one turn');
     guide!.append(demo);
@@ -115,6 +115,7 @@ export async function loadStage(ctx: StageCtx): Promise<StageResult> {
     await sleep(500);
     await stage.animateLift();
     Q.reset();
+    Q.onChange?.([]);
     Q.enabled = true;
   }
 

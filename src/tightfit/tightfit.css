@@ -4,6 +4,7 @@ body.tightfit {
   --text:#24483c; --muted:#697365; --accent:#e1a35c;
   --x:#bc5b49; --y:#447c59; --z:#4f77a5;
   background:var(--bg); color:var(--text); font:15px/1.5 "Avenir Next", Avenir, "Segoe UI", sans-serif;
+  min-height:100dvh;
 }
 .tightfit * { -webkit-tap-highlight-color:transparent; }
 .tightfit button, .tightfit a { touch-action:manipulation; }
